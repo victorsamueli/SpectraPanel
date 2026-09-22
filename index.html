@@ -102,10 +102,24 @@
                                 <i class="fa-solid fa-filter"></i> Add Filter
                             </button>
                         </div>
-                        <div class="search-field">
-                            <div class="search-input-wrap">
-                                <i class="fa-solid fa-magnifying-glass"></i>
-                                <input type="text" id="db-table-search" placeholder="Quick search in table..." class="form-input">
+                        <div class="search-and-columns">
+                            <div class="search-field">
+                                <div class="search-input-wrap">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                    <input type="text" id="db-table-search" placeholder="Quick search in table..." class="form-input">
+                                </div>
+                            </div>
+                            <div class="column-visibility-wrap">
+                                <button type="button" id="btn-toggle-columns" class="btn btn-secondary btn-sm" title="Select columns to display in table">
+                                    <i class="fa-solid fa-table-columns"></i> Columns <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem; margin-left: 2px;"></i>
+                                </button>
+                                <div id="column-dropdown" class="column-dropdown glass-panel" style="display: none;">
+                                    <div class="column-dropdown-header">
+                                        <span>Display Columns</span>
+                                        <button type="button" id="btn-reset-columns" class="btn-link" style="font-size: 0.725rem;">Reset</button>
+                                    </div>
+                                    <div id="column-checkboxes-container" class="column-checkboxes"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -192,8 +206,23 @@
                     </button>
                 </div>
 
+                <!-- Combinations Results Header & Export Bar -->
+                <div id="results-action-bar" class="results-action-bar glass-panel mt-3" style="display: none;">
+                    <div class="results-header-info">
+                        <h3 class="m-0"><i class="fa-solid fa-layer-group"></i> Generated Combinations (<span id="results-count">0</span>)</h3>
+                    </div>
+                    <div class="export-btn-group">
+                        <button type="button" id="btn-export-excel" class="btn btn-secondary btn-sm" title="Export combinations to Excel (.xlsx)">
+                            <i class="fa-solid fa-file-excel" style="color: #10b981;"></i> Export Excel
+                        </button>
+                        <button type="button" id="btn-export-csv" class="btn btn-secondary btn-sm" title="Export combinations to CSV (.csv)">
+                            <i class="fa-solid fa-file-csv" style="color: #38bdf8;"></i> Export CSV
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Compact Combination Results Section -->
-                <div id="results-container" class="mt-3">
+                <div id="results-container" class="mt-2">
                     <div class="empty-state glass-panel">
                         <i class="fa-solid fa-flask-vial"></i>
                         <h3>No Panels Generated Yet</h3>

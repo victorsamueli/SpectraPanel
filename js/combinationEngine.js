@@ -30,17 +30,20 @@ const CombinationEngine = {
                         dyes: dyes,
                         channels_used: [],
                         targets_requested: [],
-                        targets_covered: [],
+                        targets_covered: reporters.map(r => r.target).filter(Boolean),
                         assignedDyes: []
                     };
 
                     let comboValid = true;
-                    reporters.forEach(rep => {
+                    for (let rep of reporters) {
                         const c = this.matchChannelForReagent(rep, configuredChannels, allowedChannels);
-                        if (c && allowedChannels.includes(c)) {
+                        if (c && this.isChannelAvailable(panelConfig.channels_used, c, application, allowedChannels)) {
                             panelConfig.channels_used.push(c);
+                        } else {
+                            comboValid = false;
+                            break;
                         }
-                    });
+                    }
 
                     for (let dye of dyes) {
                         const c = this.matchChannelForReagent(dye, configuredChannels, allowedChannels);
@@ -72,12 +75,19 @@ const CombinationEngine = {
             }
 
             let fullCombos = [];
+
+            // Detect any targets already covered by selected reporter lines
+            const repTargetNames = reporters.map(r => (r.target || '').toLowerCase()).filter(Boolean);
+            const targetsForAntibodies = targets.filter(t => !repTargetNames.includes(t.toLowerCase()));
+            const lockedTargetsForAntibodies = lockedTargets.filter(t => !repTargetNames.includes(t.toLowerCase()));
             
             // 2. Generate target subsets (for partial panels)
             let maxAvailableChannels = allowedChannels.length - reporters.length;
             if (maxAvailableChannels < 1) maxAvailableChannels = 1;
 
-            const targetSubsets = this.generateSubsets(targets, lockedTargets, maxAvailableChannels);
+            const targetSubsets = (targetsForAntibodies.length > 0)
+                ? this.generateSubsets(targetsForAntibodies, lockedTargetsForAntibodies, maxAvailableChannels)
+                : [[]];
             
             for (let subset of targetSubsets) {
                 let targetPrimariesList = [];
@@ -90,30 +100,41 @@ const CombinationEngine = {
                     }
                     targetPrimariesList.push(matches);
                 }
-                if (!subsetValid) continue;
+                if (!subsetValid && subset.length > 0) continue;
 
-                let primaryCombos = this.cartesianProduct(targetPrimariesList);
-                primaryCombos = primaryCombos.filter(combo => this.checkPrimaryConflict(combo, application));
+                let primaryCombos = subset.length > 0
+                    ? this.cartesianProduct(targetPrimariesList).filter(combo => this.checkPrimaryConflict(combo, application))
+                    : [[]];
 
                 for (let pCombo of primaryCombos) {
+                    // Combine antibody covered targets + reporter covered targets
+                    const coveredTargetsList = [
+                        ...subset,
+                        ...reporters.map(r => r.target).filter(t => t && targets.some(req => req.toLowerCase() === t.toLowerCase()))
+                    ];
+
                     let panelConfig = {
                         primaries: [], 
                         reporters: reporters,
                         dyes: dyes,
                         channels_used: [],
                         targets_requested: targets,
-                        targets_covered: subset,
+                        targets_covered: Array.from(new Set(coveredTargetsList)),
                         assignedDyes: []
                     };
 
-                    reporters.forEach(rep => {
-                        const c = this.matchChannelForReagent(rep, configuredChannels, allowedChannels);
-                        if (c && allowedChannels.includes(c)) {
-                            panelConfig.channels_used.push(c);
-                        }
-                    });
-
                     let comboValid = true;
+                    for (let rep of reporters) {
+                        const c = this.matchChannelForReagent(rep, configuredChannels, allowedChannels);
+                        if (c && this.isChannelAvailable(panelConfig.channels_used, c, application, allowedChannels)) {
+                            panelConfig.channels_used.push(c);
+                        } else {
+                            comboValid = false;
+                            break;
+                        }
+                    }
+                    if (!comboValid) continue;
+
                     for (let p of pCombo) {
                         if (p.conjugated_fluorophore) {
                             let c = this.matchChannelForReagent({ color: p.conjugated_color, name: p.conjugated_fluorophore }, configuredChannels, allowedChannels);
@@ -304,16 +325,31 @@ const CombinationEngine = {
     matchChannelForReagent(reagent, configuredChannels, allowedChannels) {
         if (!reagent || !allowedChannels || allowedChannels.length === 0) return null;
         
+        // HRP Check
+        if (reagent.conjugate_type === 'HRP' || reagent.conjugate === 'HRP') {
+            return allowedChannels.includes('HRP') ? 'HRP' : null;
+        }
+
         const ex = parseFloat(reagent.excitation_nm);
         const em = parseFloat(reagent.emission_nm);
-        const rColor = (reagent.color || reagent.fluorophore || reagent.name || reagent.reporter_name || '').toLowerCase();
-        const rFluor = (reagent.fluorophore || reagent.conjugate || reagent.reporter_name || reagent.name || '').toLowerCase();
+        const rFluor = (reagent.reporter || reagent.reporter_name || reagent.fluorophore || reagent.conjugate || reagent.name || '').toLowerCase();
+        const rColor = (reagent.color || rFluor).toLowerCase();
 
-        // 1. Try matching by wavelength ranges against configured channels
-        if (!isNaN(ex) && !isNaN(em) && Array.isArray(configuredChannels) && configuredChannels.length > 0) {
+        // 1. Primary rule: match by emission max (and excitation if present) against configured channels
+        if (!isNaN(em) && Array.isArray(configuredChannels) && configuredChannels.length > 0) {
+            // First check if both ex and em match a channel
+            if (!isNaN(ex)) {
+                for (let ch of configuredChannels) {
+                    if (!ch || !allowedChannels.includes(ch.name)) continue;
+                    if (ex >= ch.ex_min && ex <= ch.ex_max && em >= ch.em_min && em <= ch.em_max) {
+                        return ch.name;
+                    }
+                }
+            }
+            // Next: emission peak alone determines the channel in the custom channel builder
             for (let ch of configuredChannels) {
                 if (!ch || !allowedChannels.includes(ch.name)) continue;
-                if (ex >= ch.ex_min && ex <= ch.ex_max && em >= ch.em_min && em <= ch.em_max) {
+                if (em >= ch.em_min && em <= ch.em_max) {
                     return ch.name;
                 }
             }
@@ -331,12 +367,12 @@ const CombinationEngine = {
                 if (rFluor && (rFluor.includes(chName) || (chColor && rFluor.includes(chColor)))) return ch.name;
 
                 // Color family keyword matches
-                if (chColor === 'blue' && (rColor.includes('blue') || rColor.includes('dapi') || rColor.includes('bfp') || rColor.includes('hoechst') || rFluor.includes('dapi') || rFluor.includes('bfp') || rFluor.includes('hoechst') || rFluor.includes('405'))) return ch.name;
-                if (chColor === 'green' && (rColor.includes('green') || rColor.includes('fitc') || rColor.includes('gfp') || rColor.includes('488') || rFluor.includes('fitc') || rFluor.includes('gfp') || rFluor.includes('488') || rFluor.includes('af488'))) return ch.name;
-                if (chColor === 'orange' && (rColor.includes('orange') || rColor.includes('594') || rColor.includes('texas') || rColor.includes('568') || rFluor.includes('594') || rFluor.includes('texas'))) return ch.name;
-                if (chColor === 'red' && (rColor.includes('red') || rColor.includes('tritc') || rColor.includes('555') || rColor.includes('568') || rColor.includes('594') || rColor.includes('mcherry') || rColor.includes('cy3') || rFluor.includes('555') || rFluor.includes('568') || rFluor.includes('594') || rFluor.includes('mitotracker') || rFluor.includes('mcherry') || rFluor.includes('cy3'))) return ch.name;
-                if (chColor === 'far-red' && (rColor.includes('far-red') || rColor.includes('far red') || rColor.includes('cy5') || rColor.includes('647') || rColor.includes('alexa 647') || rColor.includes('sir') || rFluor.includes('cy5') || rFluor.includes('647') || rFluor.includes('sir'))) return ch.name;
-                if (chColor === 'near-ir' && (rColor.includes('near-ir') || rColor.includes('near ir') || rColor.includes('750') || rColor.includes('cy7') || rColor.includes('800') || rFluor.includes('750') || rFluor.includes('cy7') || rFluor.includes('800'))) return ch.name;
+                if (chColor === 'blue' && (rColor.includes('blue') || rFluor.includes('dapi') || rFluor.includes('bfp') || rFluor.includes('hoechst') || rFluor.includes('405'))) return ch.name;
+                if (chColor === 'green' && (rColor.includes('green') || rFluor.includes('fitc') || rFluor.includes('gfp') || rFluor.includes('egfp') || rFluor.includes('488') || rFluor.includes('af488'))) return ch.name;
+                if (chColor === 'orange' && (rColor.includes('orange') || rFluor.includes('594') || rFluor.includes('texas') || rFluor.includes('568'))) return ch.name;
+                if (chColor === 'red' && (rColor.includes('red') || rFluor.includes('tritc') || rFluor.includes('555') || rFluor.includes('568') || rFluor.includes('594') || rFluor.includes('mcherry') || rFluor.includes('cy3') || rFluor.includes('mitotracker'))) return ch.name;
+                if (chColor === 'far-red' && (rColor.includes('far-red') || rColor.includes('far red') || rFluor.includes('cy5') || rFluor.includes('647') || rFluor.includes('alexa 647') || rFluor.includes('sir') || rFluor.includes('irfp'))) return ch.name;
+                if (chColor === 'near-ir' && (rColor.includes('near-ir') || rColor.includes('near ir') || rFluor.includes('750') || rFluor.includes('cy7') || rFluor.includes('800'))) return ch.name;
             }
         }
 
@@ -345,12 +381,12 @@ const CombinationEngine = {
             const chLower = (chName || '').toLowerCase();
             if (rColor && chLower && (rColor.includes(chLower) || chLower.includes(rColor))) return chName;
             if (rFluor && chLower && (rFluor.includes(chLower) || chLower.includes(rFluor))) return chName;
-            if (chLower.includes('blue') && (rColor.includes('dapi') || rColor.includes('bfp') || rColor.includes('hoechst') || rFluor.includes('dapi'))) return chName;
-            if (chLower.includes('green') && (rColor.includes('fitc') || rColor.includes('gfp') || rColor.includes('488') || rFluor.includes('488') || rFluor.includes('fitc'))) return chName;
-            if (chLower.includes('orange') && (rColor.includes('594') || rColor.includes('texas') || rFluor.includes('594'))) return chName;
-            if (chLower.includes('red') && (rColor.includes('red') || rColor.includes('tritc') || rColor.includes('555') || rColor.includes('568') || rColor.includes('594') || rColor.includes('mcherry') || rFluor.includes('555') || rFluor.includes('568') || rFluor.includes('594'))) return chName;
-            if (chLower.includes('far') && (rColor.includes('cy5') || rColor.includes('647') || rColor.includes('sir') || rFluor.includes('647') || rFluor.includes('cy5'))) return chName;
-            if (chLower.includes('near') && (rColor.includes('750') || rColor.includes('cy7') || rColor.includes('800') || rFluor.includes('cy7') || rFluor.includes('750'))) return chName;
+            if (chLower.includes('blue') && (rFluor.includes('dapi') || rFluor.includes('bfp') || rFluor.includes('hoechst'))) return chName;
+            if (chLower.includes('green') && (rFluor.includes('fitc') || rFluor.includes('gfp') || rFluor.includes('egfp') || rFluor.includes('488'))) return chName;
+            if (chLower.includes('orange') && (rFluor.includes('594') || rFluor.includes('texas'))) return chName;
+            if (chLower.includes('red') && (rFluor.includes('tritc') || rFluor.includes('555') || rFluor.includes('568') || rFluor.includes('594') || rFluor.includes('mcherry'))) return chName;
+            if (chLower.includes('far') && (rFluor.includes('cy5') || rFluor.includes('647') || rFluor.includes('sir') || rFluor.includes('irfp'))) return chName;
+            if (chLower.includes('near') && (rFluor.includes('750') || rFluor.includes('cy7') || rFluor.includes('800'))) return chName;
         }
 
         return null;
@@ -367,7 +403,10 @@ const CombinationEngine = {
             if (p && p.primary) reqs.push({ name: p.primary.target || 'Target', compat: p.primary.fixation_compatible || "" });
         });
         (panelConfig.reporters || []).forEach(r => {
-            if (r) reqs.push({ name: r.reporter_name || 'Reporter', compat: r.recommended_fixation || "" });
+            if (r) {
+                const repTitle = r.target ? `${r.target} (${r.reporter || r.reporter_name})` : (r.reporter || r.reporter_name || 'Reporter');
+                reqs.push({ name: repTitle, compat: r.recommended_fixation || "" });
+            }
         });
         (panelConfig.assignedDyes || []).forEach(d => {
             if (d && d.dye) reqs.push({ name: d.dye.name || 'Dye', compat: d.dye.notes || d.dye.fixation_compatible || "" }); 

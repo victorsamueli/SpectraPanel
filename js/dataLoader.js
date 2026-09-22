@@ -122,7 +122,7 @@ const DataLoader = {
                             } else if (keys.includes('target_structure')) {
                                 window.db.dyes = json;
                                 importedSheets.push('Dyes');
-                            } else if (keys.includes('reporter_name')) {
+                            } else if (keys.includes('reporter') || keys.includes('reporter_name')) {
                                 window.db.reporters = json;
                                 importedSheets.push('Reporters');
                             }
@@ -196,7 +196,7 @@ const DataLoader = {
         if (keys.includes('target') && keys.includes('host')) targetDb = 'primaries';
         else if (keys.includes('anti_host')) targetDb = 'secondaries';
         else if (keys.includes('target_structure')) targetDb = 'dyes';
-        else if (keys.includes('reporter_name')) targetDb = 'reporters';
+        else if (keys.includes('reporter') || keys.includes('reporter_name')) targetDb = 'reporters';
         else {
             if (statusEl) {
                 statusEl.innerText = "Unrecognized table schema in CSV";
@@ -246,12 +246,13 @@ const DataLoader = {
             ["1. This template is stripped down to strictly what is required for multiplex panel design."],
             ["2. Keep the column headers in row 1 unchanged."],
             ["3. Enter your lab's inventory across the respective sheets (Primaries, Secondaries, Direct_Dyes, Reporters)."],
-            ["4. Save this workbook and click 'Upload Database' in SpectraPanel to load everything in one click."],
+            ["4. Detection channels & colors for Secondaries and Reporters are computed dynamically from emission peaks matching your configured microscopy channels (no static color column required)."],
+            ["5. Under Reporters, enter target (protein name) and reporter (fluorophore tag)."],
+            ["6. Save this workbook and click 'Upload Database' in SpectraPanel to load everything in one click."],
             [""],
             ["Accepted Values & Conventions:"],
             ["• applications: Comma-separated (e.g., 'ICC, IHC, WB' or 'ICC, IHC')"],
             ["• live_cell_compatible: 'Yes' or 'No'"],
-            ["• color: 'Blue', 'Green', 'Orange', 'Red', 'Far-Red', 'Near-IR'"],
             ["• conjugate_type: 'Fluorophore' or 'HRP'"],
             ["• conjugated_color: Leave blank if unconjugated; enter fluorophore color if directly conjugated."],
             ["• fixation_compatible: 'PFA', 'Methanol', or 'PFA, Methanol'"]
@@ -290,14 +291,13 @@ const DataLoader = {
         ];
         const wsPrimaries = XLSX.utils.json_to_sheet(primariesData);
 
-        // 3. Secondaries Sheet (8 essential columns)
+        // 3. Secondaries Sheet (7 essential columns, no static color)
         const secondariesData = [
             {
                 anti_host: "Rabbit",
                 anti_isotype: "IgG (H+L)",
                 conjugate: "Alexa Fluor 488",
                 conjugate_type: "Fluorophore",
-                color: "Green",
                 excitation_nm: "490",
                 emission_nm: "525",
                 applications: "ICC, IHC, WB"
@@ -307,9 +307,17 @@ const DataLoader = {
                 anti_isotype: "IgG (H+L)",
                 conjugate: "Alexa Fluor 555",
                 conjugate_type: "Fluorophore",
-                color: "Red",
                 excitation_nm: "555",
                 emission_nm: "565",
+                applications: "ICC, IHC, WB"
+            },
+            {
+                anti_host: "Mouse",
+                anti_isotype: "IgG1",
+                conjugate: "Alexa Fluor 594",
+                conjugate_type: "Fluorophore",
+                excitation_nm: "590",
+                emission_nm: "617",
                 applications: "ICC, IHC, WB"
             },
             {
@@ -317,7 +325,6 @@ const DataLoader = {
                 anti_isotype: "IgG (H+L)",
                 conjugate: "HRP",
                 conjugate_type: "HRP",
-                color: "",
                 excitation_nm: "",
                 emission_nm: "",
                 applications: "WB"
@@ -346,21 +353,21 @@ const DataLoader = {
         ];
         const wsDyes = XLSX.utils.json_to_sheet(dyesData);
 
-        // 5. Reporters Sheet (5 essential columns)
+        // 5. Reporters Sheet (5 essential columns: target=protein, reporter=fluorophore)
         const reportersData = [
             {
-                reporter_name: "EGFP",
-                color: "Green",
+                target: "Tubulin",
+                reporter: "EGFP",
                 excitation_nm: "488",
                 emission_nm: "507",
-                recommended_fixation: "PFA"
+                recommended_fixation: "2% PFA 10 min RT"
             },
             {
-                reporter_name: "mCherry",
-                color: "Red",
+                target: "Actin",
+                reporter: "mCherry",
                 excitation_nm: "587",
                 emission_nm: "610",
-                recommended_fixation: "PFA"
+                recommended_fixation: "4% PFA 15 min RT"
             }
         ];
         const wsReporters = XLSX.utils.json_to_sheet(reportersData);

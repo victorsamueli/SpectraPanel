@@ -177,7 +177,50 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 8. Manual Entry Modal Logic
+    // 8. Combinations Export Buttons
+    const btnExportExcel = document.getElementById('btn-export-excel');
+    if (btnExportExcel) {
+        btnExportExcel.addEventListener('click', () => {
+            UI.exportCombinationsToExcel();
+        });
+    }
+
+    const btnExportCSV = document.getElementById('btn-export-csv');
+    if (btnExportCSV) {
+        btnExportCSV.addEventListener('click', () => {
+            UI.exportCombinationsToCSV();
+        });
+    }
+
+    // 9. Table Column Visibility Dropdown Toggle & Reset
+    const btnToggleColumns = document.getElementById('btn-toggle-columns');
+    const columnDropdown = document.getElementById('column-dropdown');
+    if (btnToggleColumns && columnDropdown) {
+        btnToggleColumns.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = columnDropdown.style.display === 'block';
+            columnDropdown.style.display = isOpen ? 'none' : 'block';
+        });
+
+        columnDropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
+        window.addEventListener('click', () => {
+            if (columnDropdown.style.display === 'block') {
+                columnDropdown.style.display = 'none';
+            }
+        });
+    }
+
+    const btnResetColumns = document.getElementById('btn-reset-columns');
+    if (btnResetColumns) {
+        btnResetColumns.addEventListener('click', () => {
+            UI.resetVisibleColumns(UI.state.activeTab);
+        });
+    }
+
+    // 10. Manual Entry Modal Logic
     const modalManualEntry = document.getElementById('modal-manual-entry');
     const btnManualEntry = document.getElementById('btn-manual-entry');
 

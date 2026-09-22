@@ -1,9 +1,9 @@
-id,anti_host,anti_isotype,conjugate,conjugate_type,color,excitation_nm,emission_nm,applications,catalog_no,supplier,dilution_icc,dilution_ihc,dilution_wb,incubation_conditions,cross_adsorbed,live_cell_compatible,notes
-sab_001,Rabbit,IgG (H+L),Alexa Fluor 488,Fluorophore,Green,490,525,"ICC, IHC, WB",A-11008,Invitrogen,1:500,1:500,1:5000,"RT, 1h, dark",Mouse,No,
-sab_002,Mouse,IgG (H+L),Alexa Fluor 555,Fluorophore,Red,555,565,"ICC, IHC, WB",A-21422,Invitrogen,1:500,1:500,1:5000,"RT, 1h, dark","Human, Rabbit, Rat",No,
-sab_003,Mouse,IgG1,Alexa Fluor 594,Fluorophore,Red,590,617,"ICC, IHC, WB",A-21125,Invitrogen,1:500,1:500,1:5000,"RT, 1h, dark","Human, Rabbit, Rat",No,Isotype specific
-sab_004,Mouse,IgG2a,Alexa Fluor 488,Fluorophore,Green,490,525,"ICC, IHC, WB",A-21131,Invitrogen,1:500,1:500,1:5000,"RT, 1h, dark","Human, Rabbit, Rat",No,Isotype specific
-sab_005,Rat,IgG (H+L),Alexa Fluor 647,Fluorophore,Far-Red,650,665,"ICC, IHC, WB",A-21247,Invitrogen,1:500,1:500,1:5000,"RT, 1h, dark","Mouse, Human",No,
-sab_006,Chicken,IgY (H+L),Alexa Fluor 647,Fluorophore,Far-Red,650,665,"ICC, IHC, WB",A-21449,Invitrogen,1:500,1:500,1:5000,"RT, 1h, dark",Mouse,No,
-sab_007,Rabbit,IgG (H+L),HRP,HRP,,,,WB,31460,Thermo,1:1000,1:1000,1:10000,"RT, 1h",,No,
-sab_008,Mouse,IgG (H+L),HRP,HRP,,,,WB,31430,Thermo,1:1000,1:1000,1:10000,"RT, 1h",,No,
+id,anti_host,anti_isotype,conjugate,conjugate_type,excitation_nm,emission_nm,applications,catalog_no,supplier,dilution_icc,dilution_ihc,dilution_wb,incubation_conditions,cross_adsorbed,live_cell_compatible,notes
+sab_001,Rabbit,IgG (H+L),Alexa Fluor 488,Fluorophore,490,525,"ICC, IHC, WB",A-11008,Invitrogen,1:500,1:500,1:5000,"RT, 1h, dark",Mouse,No,
+sab_002,Mouse,IgG (H+L),Alexa Fluor 555,Fluorophore,555,565,"ICC, IHC, WB",A-21422,Invitrogen,1:500,1:500,1:5000,"RT, 1h, dark","Human, Rabbit, Rat",No,
+sab_003,Mouse,IgG1,Alexa Fluor 594,Fluorophore,590,617,"ICC, IHC, WB",A-21125,Invitrogen,1:500,1:500,1:5000,"RT, 1h, dark","Human, Rabbit, Rat",No,Isotype specific
+sab_004,Mouse,IgG2a,Alexa Fluor 488,Fluorophore,490,525,"ICC, IHC, WB",A-21131,Invitrogen,1:500,1:500,1:5000,"RT, 1h, dark","Human, Rabbit, Rat",No,Isotype specific
+sab_005,Rat,IgG (H+L),Alexa Fluor 647,Fluorophore,650,665,"ICC, IHC, WB",A-21247,Invitrogen,1:500,1:500,1:5000,"RT, 1h, dark","Mouse, Human",No,
+sab_006,Chicken,IgY (H+L),Alexa Fluor 647,Fluorophore,650,665,"ICC, IHC, WB",A-21449,Invitrogen,1:500,1:500,1:5000,"RT, 1h, dark",Mouse,No,
+sab_007,Rabbit,IgG (H+L),HRP,HRP,,,WB,31460,Thermo,1:1000,1:1000,1:10000,"RT, 1h",,No,
+sab_008,Mouse,IgG (H+L),HRP,HRP,,,WB,31430,Thermo,1:1000,1:1000,1:10000,"RT, 1h",,No,

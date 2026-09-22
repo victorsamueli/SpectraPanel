@@ -21,7 +21,15 @@ const UI = {
             secondaries: '',
             dyes: '',
             reporters: ''
-        }
+        },
+        visibleColumns: {
+            primaries: null,
+            secondaries: null,
+            dyes: null,
+            reporters: null
+        },
+        lastResults: null,
+        lastConfig: null
     },
 
     updateTabCounts() {
@@ -87,6 +95,119 @@ const UI = {
         return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
     },
 
+    /**
+     * Finds configured microscopy channel matching an emission wavelength (nm).
+     * Also detects HRP conjugates.
+     */
+    getChannelForEmission(emissionNm, conjugateType = '') {
+        if (conjugateType && String(conjugateType).toUpperCase().includes('HRP')) {
+            return { name: 'HRP', hexColor: '#fbbf24' };
+        }
+        const em = parseFloat(emissionNm);
+        if (isNaN(em)) return null;
+        for (let ch of (this.state.configuredChannels || [])) {
+            if (em >= ch.em_min && em <= ch.em_max) {
+                return ch;
+            }
+        }
+        return null;
+    },
+
+    getDefaultColumns(tab) {
+        if (tab === 'primaries') {
+            return ['target', 'host', 'isotype', 'applications', 'conjugated_color', 'fixation_compatible', 'live_cell_compatible'];
+        } else if (tab === 'secondaries') {
+            return ['anti_host', 'anti_isotype', 'conjugate', 'channel', 'excitation_nm', 'emission_nm', 'applications'];
+        } else if (tab === 'dyes') {
+            return ['name', 'target_structure', 'color', 'excitation_nm', 'emission_nm', 'live_cell_compatible'];
+        } else if (tab === 'reporters') {
+            return ['target', 'reporter', 'channel', 'excitation_nm', 'emission_nm', 'recommended_fixation'];
+        }
+        return [];
+    },
+
+    getAllAvailableColumns(tab) {
+        const data = window.db[tab] || [];
+        const rawKeys = data.length > 0 ? Object.keys(data[0]) : [];
+        const set = new Set(rawKeys.filter(k => k !== 'id'));
+
+        if (tab === 'secondaries' || tab === 'reporters') {
+            set.delete('color');
+            set.add('channel');
+        }
+
+        this.getDefaultColumns(tab).forEach(c => set.add(c));
+        return Array.from(set);
+    },
+
+    getVisibleColumns(tab) {
+        if (!this.state.visibleColumns[tab]) {
+            try {
+                const saved = localStorage.getItem(`spectrapanel_cols_${tab}`);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        this.state.visibleColumns[tab] = parsed;
+                        return parsed;
+                    }
+                }
+            } catch (e) {}
+            this.state.visibleColumns[tab] = [...this.getDefaultColumns(tab)];
+        }
+        return this.state.visibleColumns[tab];
+    },
+
+    setVisibleColumns(tab, cols) {
+        this.state.visibleColumns[tab] = cols;
+        try {
+            localStorage.setItem(`spectrapanel_cols_${tab}`, JSON.stringify(cols));
+        } catch (e) {}
+        this.renderDatabaseTable();
+        this.renderColumnVisibilityDropdown();
+    },
+
+    resetVisibleColumns(tab) {
+        this.setVisibleColumns(tab, [...this.getDefaultColumns(tab)]);
+    },
+
+    renderColumnVisibilityDropdown() {
+        const container = document.getElementById('column-checkboxes-container');
+        if (!container) return;
+
+        const tab = this.state.activeTab;
+        const allCols = this.getAllAvailableColumns(tab);
+        const visibleCols = this.getVisibleColumns(tab);
+
+        container.innerHTML = allCols.map(col => {
+            const isChecked = visibleCols.includes(col);
+            const labelText = col === 'channel' ? 'Channel (Dynamic)' : col.replace(/_/g, ' ');
+            return `
+                <label class="column-cb-label">
+                    <input type="checkbox" class="col-vis-cb" data-col="${col}" ${isChecked ? 'checked' : ''}>
+                    <span>${labelText}</span>
+                </label>
+            `;
+        }).join('');
+
+        container.querySelectorAll('.col-vis-cb').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                const col = e.target.getAttribute('data-col');
+                let current = [...this.getVisibleColumns(tab)];
+                if (e.target.checked) {
+                    if (!current.includes(col)) current.push(col);
+                } else {
+                    if (current.length <= 1) {
+                        alert("You must keep at least one column visible.");
+                        e.target.checked = true;
+                        return;
+                    }
+                    current = current.filter(c => c !== col);
+                }
+                this.setVisibleColumns(tab, current);
+            });
+        });
+    },
+
     init() {
         // Load saved channel configuration if available
         try {
@@ -107,6 +228,9 @@ const UI = {
         // Render channel settings table in modal
         this.renderChannelSettingsTable();
 
+        // Render column visibility options
+        this.renderColumnVisibilityDropdown();
+
         // Tab switching on Left Database
         document.querySelectorAll('.tab-controls .tab-btn[data-tab]').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -117,6 +241,7 @@ const UI = {
                 
                 this.populateFilterKeys();
                 this.renderActiveFilters();
+                this.renderColumnVisibilityDropdown();
                 this.renderDatabaseTable();
             });
         });
@@ -503,10 +628,18 @@ ${message}
 
         const sample = data[0];
         const exclude = ['id', 'catalog_no', 'notes', 'dilution_icc', 'dilution_ihc', 'dilution_wb', 'mol_weight_kda', 'excitation_nm', 'emission_nm'];
-        const keys = Object.keys(sample).filter(k => !exclude.includes(k)).sort();
+        let keys = Object.keys(sample).filter(k => !exclude.includes(k)).sort();
+
+        // For secondaries and reporters, remove static color and add dynamic channel
+        if (this.state.activeTab === 'secondaries' || this.state.activeTab === 'reporters') {
+            keys = keys.filter(k => k !== 'color');
+            if (!keys.includes('channel')) {
+                keys.unshift('channel');
+            }
+        }
 
         keySelect.innerHTML = `<option value="">-- Select Column --</option>` +
-            keys.map(k => `<option value="${k}">${k.replace(/_/g, ' ')}</option>`).join('');
+            keys.map(k => `<option value="${k}">${k === 'channel' ? 'Channel (Dynamic)' : k.replace(/_/g, ' ')}</option>`).join('');
 
         this.populateFilterValues('');
     },
@@ -523,15 +656,22 @@ ${message}
         const data = window.db[this.state.activeTab] || [];
         const values = new Set();
 
-        data.forEach(row => {
-            const raw = row[selectedKey];
-            if (raw !== null && raw !== undefined && raw !== '') {
-                String(raw).split(',').forEach(sub => {
-                    const clean = sub.trim();
-                    if (clean) values.add(clean);
-                });
-            }
-        });
+        if (selectedKey === 'channel') {
+            data.forEach(row => {
+                const ch = this.getChannelForEmission(row.emission_nm, row.conjugate_type || row.reporter || '');
+                if (ch && ch.name) values.add(ch.name);
+            });
+        } else {
+            data.forEach(row => {
+                const raw = row[selectedKey];
+                if (raw !== null && raw !== undefined && raw !== '') {
+                    String(raw).split(',').forEach(sub => {
+                        const clean = sub.trim();
+                        if (clean) values.add(clean);
+                    });
+                }
+            });
+        }
 
         const sorted = Array.from(values).sort();
         valSelect.innerHTML = `<option value="">-- All Values (${sorted.length}) --</option>` +
@@ -581,6 +721,11 @@ ${message}
         if (filters.length > 0) {
             data = data.filter(row => {
                 return filters.every(f => {
+                    if (f.key === 'channel') {
+                        const ch = this.getChannelForEmission(row.emission_nm, row.conjugate_type || row.reporter || '');
+                        const chName = ch ? ch.name : 'Unknown';
+                        return chName.toLowerCase() === f.value.toLowerCase();
+                    }
                     const rowVal = String(row[f.key] || '').toLowerCase();
                     return rowVal.includes(f.value.toLowerCase());
                 });
@@ -591,9 +736,12 @@ ${message}
         const search = this.state.searchQuery[tab];
         if (search) {
             data = data.filter(row => {
-                return Object.values(row).some(val => 
-                    String(val).toLowerCase().includes(search)
-                );
+                const values = Object.values(row).map(val => String(val).toLowerCase());
+                if (tab === 'secondaries' || tab === 'reporters') {
+                    const ch = this.getChannelForEmission(row.emission_nm, row.conjugate_type || row.reporter || '');
+                    if (ch) values.push(ch.name.toLowerCase());
+                }
+                return values.some(val => val.includes(search));
             });
         }
 
@@ -608,15 +756,16 @@ ${message}
             return;
         }
 
-        // Build Table Headers
-        const cols = Object.keys(data[0]).filter(c => c !== 'id');
+        // Build Table Headers based on visible columns
+        const cols = this.getVisibleColumns(tab);
         let headHtml = '<tr>';
         if (isSelectable) {
             headHtml += `<th class="table-col-select" title="Select for panel">Sel</th>`;
             headHtml += `<th class="table-col-lock" title="Lock target into all combinations">Lock</th>`;
         }
         cols.forEach(c => {
-            headHtml += `<th>${c.replace(/_/g, ' ')}</th>`;
+            const label = c === 'channel' ? 'Channel (Dynamic)' : c.replace(/_/g, ' ');
+            headHtml += `<th>${label}</th>`;
         });
         headHtml += '</tr>';
         thead.innerHTML = headHtml;
@@ -637,8 +786,9 @@ ${message}
                 itemName = row.name;
                 itemType = 'Dye';
             } else if (tab === 'reporters') {
-                itemId = `reporter_${row.id || row.reporter_name}`;
-                itemName = row.reporter_name;
+                const repTag = row.reporter || row.reporter_name || '';
+                itemId = `reporter_${row.id || (row.target + '_' + repTag)}`;
+                itemName = row.target ? `${row.target} (${repTag})` : repTag;
                 itemType = 'FP';
             }
 
@@ -660,8 +810,18 @@ ${message}
             }
 
             cols.forEach(c => {
-                let val = row[c] !== undefined ? row[c] : '';
-                bodyHtml += `<td>${val}</td>`;
+                if (c === 'channel') {
+                    const ch = this.getChannelForEmission(row.emission_nm, row.conjugate_type || row.reporter || '');
+                    if (ch) {
+                        const hex = ch.hexColor || '#38bdf8';
+                        bodyHtml += `<td><span class="channel-table-pill" style="--ch-color: ${hex}; border-color: ${hex}55;"><span class="ch-dot" style="background-color: ${hex};"></span>${ch.name}</span></td>`;
+                    } else {
+                        bodyHtml += `<td><span style="color: var(--text-muted); font-size: 0.75rem;">—</span></td>`;
+                    }
+                } else {
+                    let val = row[c] !== undefined ? row[c] : '';
+                    bodyHtml += `<td>${val}</td>`;
+                }
             });
             bodyHtml += '</tr>';
         });
@@ -718,7 +878,11 @@ ${message}
         } else if (type === 'Dye') {
             return window.db.dyes.filter(d => d.name && d.name.toLowerCase() === name.toLowerCase());
         } else if (type === 'FP') {
-            return window.db.reporters.filter(r => r.reporter_name && r.reporter_name.toLowerCase() === name.toLowerCase());
+            return window.db.reporters.filter(r => {
+                const repTag = r.reporter || r.reporter_name || '';
+                const rName = r.target ? `${r.target} (${repTag})` : repTag;
+                return rName && rName.toLowerCase() === name.toLowerCase();
+            });
         }
         return [];
     },
@@ -791,13 +955,17 @@ ${message}
                 targets.push(r.name);
                 if (r.locked) lockedTargets.push(r.name);
             } else if (r.type === 'Dye') {
-                const dyeObj = r.dbRef[0] || window.db.dyes.find(d => d.name === r.name);
+                const dyeObj = (r.dbRef && r.dbRef[0]) || window.db.dyes.find(d => d.name === r.name);
                 if (dyeObj) {
                     dyes.push(dyeObj);
                     if (r.locked) lockedDyes.push(dyeObj.id);
                 }
             } else if (r.type === 'FP') {
-                const repObj = r.dbRef[0] || window.db.reporters.find(rep => rep.reporter_name === r.name);
+                const repObj = (r.dbRef && r.dbRef[0]) || window.db.reporters.find(rep => {
+                    const repTag = rep.reporter || rep.reporter_name || '';
+                    const rName = rep.target ? `${rep.target} (${repTag})` : repTag;
+                    return rName === r.name;
+                });
                 if (repObj) reporters.push(repObj);
             }
         });
@@ -810,10 +978,17 @@ ${message}
        ========================================================= */
 
     renderResults(results, config) {
+        this.state.lastResults = results;
+        this.state.lastConfig = config;
+
         const container = document.getElementById('results-container');
+        const actionBar = document.getElementById('results-action-bar');
+        const countBadge = document.getElementById('results-count');
+
         if (!container) return;
 
         if (results.error) {
+            if (actionBar) actionBar.style.display = 'none';
             container.innerHTML = `
                 <div class="empty-state glass-panel" style="border-color: var(--accent-red);">
                     <i class="fa-solid fa-triangle-exclamation" style="color: var(--accent-red);"></i>
@@ -824,6 +999,7 @@ ${message}
         }
 
         if (!results.combinations || results.combinations.length === 0) {
+            if (actionBar) actionBar.style.display = 'none';
             container.innerHTML = `
                 <div class="empty-state glass-panel">
                     <i class="fa-solid fa-circle-exclamation" style="color: var(--accent-yellow);"></i>
@@ -836,6 +1012,14 @@ ${message}
                     </p>
                 </div>`;
             return;
+        }
+
+        // Show export and count action bar
+        if (actionBar) {
+            actionBar.style.display = 'flex';
+            if (countBadge) {
+                countBadge.innerText = `${results.combinations.length} Valid Combination${results.combinations.length > 1 ? 's' : ''}`;
+            }
         }
 
         let html = '';
@@ -880,8 +1064,12 @@ ${message}
         combo.reporters.forEach(r => {
             const ch = CombinationEngine.matchChannelForReagent(r, config.configuredChannels, channels);
             if (ch && channelMap[ch] !== undefined) {
+                const repTag = r.reporter || r.reporter_name || '';
+                const targetText = r.target 
+                    ? `<strong>${r.target}</strong><br><span style="font-size:0.7rem; color:var(--text-secondary);">(${repTag})</span>` 
+                    : `<strong>${repTag}</strong>`;
                 channelMap[ch].push({
-                    target: r.reporter_name,
+                    target: targetText,
                     pri: `<em>(Reporter Line)</em>`,
                     sec: `—`
                 });
@@ -895,7 +1083,7 @@ ${message}
         channels.forEach(ch => {
             const items = channelMap[ch];
             if (items && items.length > 0) {
-                targetRow += `<td><strong>${items.map(i => i.target).join('<br>+<br>')}</strong></td>`;
+                targetRow += `<td>${items.map(i => i.target).join('<br>+<br>')}</td>`;
                 priRow += `<td>${items.map(i => i.pri).join('<br>+<br>')}</td>`;
                 secRow += `<td>${items.map(i => i.sec).join('<br>+<br>')}</td>`;
             } else {
@@ -951,6 +1139,227 @@ ${message}
         `;
     },
 
+    /* =========================================================
+       Export Combinations (Excel .xlsx & CSV .csv)
+       ========================================================= */
+
+    exportCombinationsToExcel() {
+        if (!this.state.lastResults || !this.state.lastResults.combinations || this.state.lastResults.combinations.length === 0) {
+            alert("No combinations available to export. Please generate combinations first.");
+            return;
+        }
+        if (typeof XLSX === 'undefined') {
+            alert("Excel export library is not ready. Please try again in a moment.");
+            return;
+        }
+
+        const combinations = this.state.lastResults.combinations;
+        const config = this.state.lastConfig || {};
+        const channels = config.allowedChannels && config.allowedChannels.length > 0 
+            ? config.allowedChannels 
+            : ["Blue", "Green", "Red", "Far-Red"];
+
+        // 1. Detailed Rows Sheet
+        const detailedRows = [];
+        combinations.forEach((combo, idx) => {
+            const comboNum = `Combo #${idx + 1}`;
+            const score = combo.score;
+            const fixStatus = combo.fixation.valid ? 'Compatible' : 'Conflict';
+            const fixWarnings = combo.fixation.warnings.join('; ') || 'None';
+
+            // Primaries + Secondaries
+            combo.primaries.forEach(p => {
+                detailedRows.push({
+                    "Combination": comboNum,
+                    "Score": score,
+                    "Fixation Status": fixStatus,
+                    "Channel": p.channel,
+                    "Target / Marker": p.primary.target,
+                    "Reagent Type": p.is_direct ? "Direct Conjugated Primary" : "Primary + Secondary",
+                    "Primary Details": `${p.primary.host} ${p.primary.isotype || ''} anti-${p.primary.target}`,
+                    "Secondary / Detection": p.is_direct 
+                        ? `Direct (${p.primary.conjugated_color})` 
+                        : `${p.secondary.anti_host} ${p.secondary.anti_isotype} - ${p.secondary.conjugate}`,
+                    "Excitation Peak (nm)": p.secondary ? p.secondary.excitation_nm : '—',
+                    "Emission Peak (nm)": p.secondary ? p.secondary.emission_nm : '—',
+                    "Warnings": fixWarnings
+                });
+            });
+
+            // Direct Dyes
+            combo.assignedDyes.forEach(d => {
+                detailedRows.push({
+                    "Combination": comboNum,
+                    "Score": score,
+                    "Fixation Status": fixStatus,
+                    "Channel": d.channel,
+                    "Target / Marker": d.dye.target_structure ? `${d.dye.name} (${d.dye.target_structure})` : d.dye.name,
+                    "Reagent Type": "Direct Counterstain / Dye",
+                    "Primary Details": "—",
+                    "Secondary / Detection": d.dye.name,
+                    "Excitation Peak (nm)": d.dye.excitation_nm || '—',
+                    "Emission Peak (nm)": d.dye.emission_nm || '—',
+                    "Warnings": fixWarnings
+                });
+            });
+
+            // Reporters
+            combo.reporters.forEach(r => {
+                const ch = CombinationEngine.matchChannelForReagent(r, config.configuredChannels, channels) || 'Reporter';
+                const repTag = r.reporter || r.reporter_name || '';
+                detailedRows.push({
+                    "Combination": comboNum,
+                    "Score": score,
+                    "Fixation Status": fixStatus,
+                    "Channel": ch,
+                    "Target / Marker": r.target ? `${r.target} (${repTag})` : repTag,
+                    "Reagent Type": "Fluorescent Reporter Line",
+                    "Primary Details": "—",
+                    "Secondary / Detection": repTag,
+                    "Excitation Peak (nm)": r.excitation_nm || '—',
+                    "Emission Peak (nm)": r.emission_nm || '—',
+                    "Warnings": fixWarnings
+                });
+            });
+        });
+
+        // 2. Matrix Overview Sheet (One row per combination, columns for each channel)
+        const matrixRows = combinations.map((combo, idx) => {
+            const row = {
+                "Combination": `Combo #${idx + 1}`,
+                "Score": combo.score,
+                "Fixation": combo.fixation.valid ? 'OK' : 'Conflict'
+            };
+
+            channels.forEach(ch => {
+                const itemsInCh = [];
+                combo.primaries.filter(p => p.channel === ch).forEach(p => {
+                    const sec = p.is_direct ? `Direct ${p.primary.conjugated_color}` : p.secondary.conjugate;
+                    itemsInCh.push(`${p.primary.target} [${p.primary.host}] (${sec})`);
+                });
+                combo.assignedDyes.filter(d => d.channel === ch).forEach(d => {
+                    itemsInCh.push(`${d.dye.name}`);
+                });
+                combo.reporters.forEach(r => {
+                    const rCh = CombinationEngine.matchChannelForReagent(r, config.configuredChannels, channels);
+                    if (rCh === ch) {
+                        const repTag = r.reporter || r.reporter_name || '';
+                        itemsInCh.push(r.target ? `${r.target} (${repTag})` : repTag);
+                    }
+                });
+                row[ch] = itemsInCh.length > 0 ? itemsInCh.join(' + ') : '—';
+            });
+
+            if (!combo.fixation.valid) {
+                row["Warnings"] = combo.fixation.warnings.join('; ');
+            }
+            return row;
+        });
+
+        const wb = XLSX.utils.book_new();
+        const wsDetailed = XLSX.utils.json_to_sheet(detailedRows);
+        XLSX.utils.book_append_sheet(wb, wsDetailed, "Detailed_Channels");
+        const wsMatrix = XLSX.utils.json_to_sheet(matrixRows);
+        XLSX.utils.book_append_sheet(wb, wsMatrix, "Matrix_Overview");
+
+        const dateStr = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 15);
+        XLSX.writeFile(wb, `SpectraPanel_Combinations_${dateStr}.xlsx`);
+    },
+
+    exportCombinationsToCSV() {
+        if (!this.state.lastResults || !this.state.lastResults.combinations || this.state.lastResults.combinations.length === 0) {
+            alert("No combinations available to export. Please generate combinations first.");
+            return;
+        }
+
+        const combinations = this.state.lastResults.combinations;
+        const config = this.state.lastConfig || {};
+        const channels = config.allowedChannels && config.allowedChannels.length > 0 
+            ? config.allowedChannels 
+            : ["Blue", "Green", "Red", "Far-Red"];
+
+        const detailedRows = [];
+        combinations.forEach((combo, idx) => {
+            const comboNum = `Combo #${idx + 1}`;
+            const score = combo.score;
+            const fixStatus = combo.fixation.valid ? 'Compatible' : 'Conflict';
+            const fixWarnings = combo.fixation.warnings.join('; ') || 'None';
+
+            combo.primaries.forEach(p => {
+                detailedRows.push({
+                    "Combination": comboNum,
+                    "Score": score,
+                    "Fixation Status": fixStatus,
+                    "Channel": p.channel,
+                    "Target / Marker": p.primary.target,
+                    "Reagent Type": p.is_direct ? "Direct Conjugated Primary" : "Primary + Secondary",
+                    "Primary Details": `${p.primary.host} ${p.primary.isotype || ''} anti-${p.primary.target}`,
+                    "Secondary / Detection": p.is_direct 
+                        ? `Direct (${p.primary.conjugated_color})` 
+                        : `${p.secondary.anti_host} ${p.secondary.anti_isotype} - ${p.secondary.conjugate}`,
+                    "Excitation Peak (nm)": p.secondary ? p.secondary.excitation_nm : '',
+                    "Emission Peak (nm)": p.secondary ? p.secondary.emission_nm : '',
+                    "Warnings": fixWarnings
+                });
+            });
+
+            combo.assignedDyes.forEach(d => {
+                detailedRows.push({
+                    "Combination": comboNum,
+                    "Score": score,
+                    "Fixation Status": fixStatus,
+                    "Channel": d.channel,
+                    "Target / Marker": d.dye.target_structure ? `${d.dye.name} (${d.dye.target_structure})` : d.dye.name,
+                    "Reagent Type": "Direct Counterstain / Dye",
+                    "Primary Details": "—",
+                    "Secondary / Detection": d.dye.name,
+                    "Excitation Peak (nm)": d.dye.excitation_nm || '',
+                    "Emission Peak (nm)": d.dye.emission_nm || '',
+                    "Warnings": fixWarnings
+                });
+            });
+
+            combo.reporters.forEach(r => {
+                const ch = CombinationEngine.matchChannelForReagent(r, config.configuredChannels, channels) || 'Reporter';
+                const repTag = r.reporter || r.reporter_name || '';
+                detailedRows.push({
+                    "Combination": comboNum,
+                    "Score": score,
+                    "Fixation Status": fixStatus,
+                    "Channel": ch,
+                    "Target / Marker": r.target ? `${r.target} (${repTag})` : repTag,
+                    "Reagent Type": "Fluorescent Reporter Line",
+                    "Primary Details": "—",
+                    "Secondary / Detection": repTag,
+                    "Excitation Peak (nm)": r.excitation_nm || '',
+                    "Emission Peak (nm)": r.emission_nm || '',
+                    "Warnings": fixWarnings
+                });
+            });
+        });
+
+        let csvContent = '';
+        if (typeof Papa !== 'undefined' && Papa.unparse) {
+            csvContent = Papa.unparse(detailedRows);
+        } else {
+            const headers = Object.keys(detailedRows[0] || {});
+            const lines = [headers.join(',')];
+            detailedRows.forEach(row => {
+                lines.push(headers.map(h => `"${String(row[h] || '').replace(/"/g, '""')}"`).join(','));
+            });
+            csvContent = lines.join('\n');
+        }
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        const dateStr = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 15);
+        a.download = `SpectraPanel_Combinations_${dateStr}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    },
+
     showModal(modalId) {
         const el = document.getElementById(modalId);
         if (el) el.style.display = "block";
@@ -982,7 +1391,6 @@ ${message}
                 { id: 'anti_isotype', label: 'Anti-Isotype (IgG (H+L))', type: 'text' },
                 { id: 'conjugate', label: 'Conjugate (Alexa Fluor 488, HRP)', type: 'text' },
                 { id: 'conjugate_type', label: 'Conjugate Type (Fluorophore/HRP)', type: 'text' },
-                { id: 'color', label: 'Color (Green, Red, Blue, Far-Red)', type: 'text' },
                 { id: 'excitation_nm', label: 'Excitation Peak (nm)', type: 'number' },
                 { id: 'emission_nm', label: 'Emission Peak (nm)', type: 'number' },
                 { id: 'applications', label: 'Applications (ICC, IHC, WB)', type: 'text' }
@@ -998,11 +1406,12 @@ ${message}
             ];
         } else if (type === 'reporters') {
             fields = [
-                { id: 'reporter_name', label: 'Reporter Name (EGFP, mCherry)', type: 'text' },
-                { id: 'color', label: 'Color (Green, Red, Blue)', type: 'text' },
+                { id: 'target', label: 'Target Protein Name (Tubulin, Actin)', type: 'text' },
+                { id: 'reporter', label: 'Reporter Fluorophore Tag (EGFP, mCherry)', type: 'text' },
                 { id: 'excitation_nm', label: 'Excitation (nm)', type: 'number' },
                 { id: 'emission_nm', label: 'Emission (nm)', type: 'number' },
-                { id: 'recommended_fixation', label: 'Compatible Fixation (PFA)', type: 'text' }
+                { id: 'recommended_fixation', label: 'Compatible Fixation (PFA)', type: 'text' },
+                { id: 'live_cell_compatible', label: 'Live-Cell Compatible (Yes/No)', type: 'text' }
             ];
         }
 
