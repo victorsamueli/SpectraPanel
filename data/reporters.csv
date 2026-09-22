@@ -1,0 +1,5 @@
+id,reporter_name,promoter,target_gene,cell_line,fluorophore_equivalent,color,excitation_nm,emission_nm,fixable,recommended_fixation,brightness,live_cell_compatible,notes
+rep_001,EGFP,CAG,,mESC,GFP,Green,488,507,Yes,2% PFA 10 min RT,High,Yes,Signal lost with methanol fixation
+rep_002,mCherry,CMV,,HEK293,mCherry,Red,587,610,Yes,4% PFA 15 min RT,High,Yes,
+rep_003,mTagBFP2,EF1a,,HeLa,BFP,Blue,399,454,Yes,4% PFA 15 min RT,High,Yes,
+rep_004,iRFP670,UbC,,U2OS,Cy5,Far-Red,643,670,Yes,4% PFA 15 min RT,High,Yes,

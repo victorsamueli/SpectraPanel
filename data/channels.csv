@@ -1,0 +1,5 @@
+channel_name,excitation_min,excitation_max,emission_min,emission_max,color
+DAPI,340,380,435,485,Blue
+FITC / GFP,460,500,510,560,Green
+TRITC / Cy3,540,570,580,630,Red
+Cy5,620,660,670,730,Far-Red

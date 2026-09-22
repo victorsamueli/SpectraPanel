@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpectraPanel v1.0 - Multiplex Antibody Panel Designer</title>
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- PapaParse for CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- SheetJS for Excel (.xlsx) parsing and template generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-viewport">
+        <!-- Top Navigation Header -->
+        <header class="top-header glass-panel">
+            <div class="brand">
+                <div class="brand-icon"><i class="fa-solid fa-microscope"></i></div>
+                <div>
+                    <h1>SpectraPanel</h1>
+                    <p class="brand-subtitle">Multiplex Antibody Panel Designer • v1.0</p>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <button id="btn-download-template" class="btn btn-accent" title="Download lean, streamlined Excel template workbook (.xlsx)">
+                    <i class="fa-solid fa-file-excel"></i> Download Excel Template
+                </button>
+                <label for="db-upload" class="btn btn-secondary" title="Upload an Excel workbook (.xlsx) or CSV file">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Upload Database
+                </label>
+                <input type="file" id="db-upload" accept=".xlsx, .xls, .csv, .tsv" hidden>
+                
+                <button id="btn-feedback" class="btn btn-secondary" title="Give feedback or feature requests">
+                    <i class="fa-solid fa-comment-dots"></i> Suggestions
+                </button>
+
+                <button id="btn-settings" class="btn btn-icon" title="Microscope Configuration & User Guide">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Layout: Left Database (52%) | Right Designer (48%) -->
+        <main class="split-layout">
+            
+            <!-- LEFT COLUMN: Database Inventory, Filtering & Target Selection -->
+            <section class="col-left">
+                <div class="database-card glass-panel">
+                    <div class="card-header">
+                        <div>
+                            <h2><i class="fa-solid fa-database"></i> Lab Inventory & Database</h2>
+                            <p class="card-subtitle">Filter criteria and select targets for your multiplex panel</p>
+                        </div>
+                        <div class="header-right-tools">
+                            <span id="upload-status" class="status-pill status-success">Default Data</span>
+                            <button id="btn-manual-entry" class="btn btn-secondary btn-sm">
+                                <i class="fa-solid fa-plus"></i> Manual Entry
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Criteria Tabs -->
+                    <div class="tab-controls">
+                        <button class="tab-btn active" data-tab="primaries">
+                            Primary Antibodies <span id="badge-count-primaries" class="tab-badge">0</span>
+                        </button>
+                        <button class="tab-btn" data-tab="secondaries">
+                            Secondary Antibodies <span id="badge-count-secondaries" class="tab-badge">0</span>
+                        </button>
+                        <button class="tab-btn" data-tab="dyes">
+                            Direct Dyes <span id="badge-count-dyes" class="tab-badge">0</span>
+                        </button>
+                        <button class="tab-btn" data-tab="reporters">
+                            Reporters <span id="badge-count-reporters" class="tab-badge">0</span>
+                        </button>
+                    </div>
+
+                    <!-- Filter Controls (Left-Side Only) -->
+                    <div class="filter-toolbar">
+                        <div class="filter-inputs">
+                            <div class="filter-field">
+                                <label for="filter-key">Filter Key:</label>
+                                <select id="filter-key" class="form-select">
+                                    <option value="">-- Select Column --</option>
+                                </select>
+                            </div>
+                            <div class="filter-field">
+                                <label for="filter-value">Value:</label>
+                                <select id="filter-value" class="form-select">
+                                    <option value="">-- All Values --</option>
+                                </select>
+                            </div>
+                            <button id="btn-add-filter" class="btn btn-secondary btn-sm align-end">
+                                <i class="fa-solid fa-filter"></i> Add Filter
+                            </button>
+                        </div>
+                        <div class="search-field">
+                            <div class="search-input-wrap">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="db-table-search" placeholder="Quick search in table..." class="form-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Active Filter Badges -->
+                    <div id="active-filters" class="active-filters-bar"></div>
+
+                    <!-- Interactive Data Table -->
+                    <div class="table-container">
+                        <table id="db-table" class="data-table">
+                            <thead>
+                                <tr><th>Loading inventory...</th></tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="table-footer-info">
+                        <span id="table-row-count">0 items</span>
+                        <span class="selection-notice"><i class="fa-solid fa-circle-info"></i> Click checkbox to select. Click 🔓 to lock.</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RIGHT COLUMN: Panel Designer (Closed by Default) & Compact Results -->
+            <section class="col-right">
+                
+                <!-- Collapsible Panel Options Card (Closed/Collapsed by Default) -->
+                <div class="panel-options-card glass-panel collapsed" id="panel-options-card">
+                    <div class="collapsible-header" id="btn-toggle-options" title="Click to expand/collapse panel options">
+                        <div class="collapsible-title-wrap">
+                            <h2><i class="fa-solid fa-sliders"></i> Panel Options</h2>
+                            <span id="options-summary-badge" class="options-badge">ICC • Fixed • 4 Channels</span>
+                        </div>
+                        <button type="button" class="btn-toggle-arrow" aria-label="Toggle Panel Options">
+                            <i class="fa-solid fa-chevron-up" id="options-chevron"></i>
+                        </button>
+                    </div>
+
+                    <div class="collapsible-content" id="panel-options-content">
+                        <!-- 1. Application Selection -->
+                        <div class="section-group mt-2">
+                            <label class="group-label">1. Immunoassay Application</label>
+                            <div class="app-selector">
+                                <label class="radio-btn"><input type="radio" name="application" value="ICC" checked> <span>ICC (Cells)</span></label>
+                                <label class="radio-btn"><input type="radio" name="application" value="IHC"> <span>IHC (Tissue)</span></label>
+                                <label class="radio-btn"><input type="radio" name="application" value="WB"> <span>WB (Western)</span></label>
+                            </div>
+                        </div>
+
+                        <!-- 2. Imaging Mode -->
+                        <div id="mode-selector-container" class="section-group">
+                            <label class="group-label">2. Preparation Mode</label>
+                            <div class="app-selector">
+                                <label class="radio-btn"><input type="radio" name="mode" value="Fixed" checked> <span>Fixed-Cell</span></label>
+                                <label class="radio-btn"><input type="radio" name="mode" value="Live"> <span>Live-Cell</span></label>
+                            </div>
+                        </div>
+
+                        <!-- 3. Permitted Detection Channels -->
+                        <div id="channel-selector-container" class="section-group">
+                            <div class="flex-between">
+                                <label class="group-label">3. Permitted Detection Channels</label>
+                                <a href="#" id="link-configure-channels" class="channel-config-link"><i class="fa-solid fa-gear"></i> Configure</a>
+                            </div>
+                            <!-- Populated dynamically by UI.renderDesignerChannels() -->
+                            <div class="channel-checkboxes" id="channels-list-container"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Selected Targets Card -->
+                <div class="selected-targets-card glass-panel mt-3">
+                    <div class="flex-between mb-1">
+                        <label class="group-label m-0">Selected Targets (<span id="selected-count">0</span>)</label>
+                        <button id="btn-clear-selected" class="btn-link" style="display:none;">Clear All</button>
+                    </div>
+                    <p class="hint-text">Check items in the database table on the left to add them here.</p>
+                    <div id="selected-targets" class="selected-tags-box">
+                        <span class="empty-hint">No targets selected yet. Check items in the left database table.</span>
+                    </div>
+
+                    <button id="btn-generate" class="btn btn-primary btn-lg w-full mt-3">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Combinations
+                    </button>
+                </div>
+
+                <!-- Compact Combination Results Section -->
+                <div id="results-container" class="mt-3">
+                    <div class="empty-state glass-panel">
+                        <i class="fa-solid fa-flask-vial"></i>
+                        <h3>No Panels Generated Yet</h3>
+                        <p>Select targets in the database and click <strong>Generate Combinations</strong>.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Settings Modal (How to Use & Configurable Microscopy Channels with Color Picker) -->
+    <div id="modal-settings" class="modal">
+        <div class="modal-content glass-panel" style="max-width: 820px;">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-gear"></i> Settings & Configuration</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+
+            <!-- Settings Tabs -->
+            <div class="tab-controls mt-3">
+                <button class="tab-btn settings-tab-btn active" data-settings-tab="guide">
+                    <i class="fa-solid fa-book-open"></i> How to Use
+                </button>
+                <button class="tab-btn settings-tab-btn" data-settings-tab="channels">
+                    <i class="fa-solid fa-wave-square"></i> Microscopy Channel Configuration
+                </button>
+            </div>
+
+            <!-- Tab 1: How to Use Guide -->
+            <div id="settings-tab-guide" class="settings-tab-content active mt-3">
+                <div class="guide-steps">
+                    <div class="guide-step">
+                        <div class="step-num">1</div>
+                        <div>
+                            <h4>Prepare or Upload Your Database</h4>
+                            <p>Click <strong>Download Excel Template</strong> to get the clean, streamlined <code>.xlsx</code> workbook. Fill in your lab's primaries, secondaries, direct dyes, and reporter lines, then click <strong>Upload Database</strong> to import all sheets at once.</p>
+                        </div>
+                    </div>
+                    <div class="guide-step">
+                        <div class="step-num">2</div>
+                        <div>
+                            <h4>Browse & Select Targets (Left Table)</h4>
+                            <p>Switch between criteria tabs (Primaries, Dyes, Reporters). Filter by any column or search. Check the <strong>box</strong> next to any reagent to add it to your panel. Click <strong>🔓</strong> to lock a mandatory target into all combinations.</p>
+                        </div>
+                    </div>
+                    <div class="guide-step">
+                        <div class="step-num">3</div>
+                        <div>
+                            <h4>Configure Optical Channels & Generate</h4>
+                            <p>In the <strong>Microscopy Channel Configuration</strong> tab, set your lasers/filters with real-time physical spectrum color pickers. In the designer, check permitted channels and click <strong>Generate Combinations</strong> to view valid multiplex panels.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Configurable Microscopy Channels with Color Picker -->
+            <div id="settings-tab-channels" class="settings-tab-content mt-3" style="display:none;">
+                <div class="advanced-section">
+                    <div class="flex-between">
+                        <div>
+                            <h4>Custom Microscopy Channels</h4>
+                            <p class="section-desc">Set channel names, excitation/emission wavelength ranges (nm), and custom colors. Editing the emission range automatically updates the color picker to the physical visible light spectrum of the midpoint!</p>
+                        </div>
+                        <div class="presets-group">
+                            <span class="preset-label">Presets:</span>
+                            <button type="button" class="btn btn-outline btn-sm" id="btn-preset-4ch">4-Ch</button>
+                            <button type="button" class="btn btn-outline btn-sm" id="btn-preset-5ch">5-Ch (+594nm)</button>
+                            <button type="button" class="btn btn-outline btn-sm" id="btn-preset-6ch">6-Ch (+750nm)</button>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Channels Table -->
+                    <div class="channel-config-table-wrap mt-2">
+                        <table class="channel-config-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 70px; text-align: center;">Color</th>
+                                    <th>Channel Name in Designer</th>
+                                    <th style="width: 150px;">Excitation Range (nm)</th>
+                                    <th style="width: 150px;">Emission Range (nm)</th>
+                                    <th style="width: 40px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="channel-settings-tbody">
+                                <!-- Populated dynamically by UI.renderChannelSettingsTable() -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="channel-config-actions mt-3 flex-between">
+                        <button type="button" id="btn-add-channel-row" class="btn btn-secondary btn-sm">
+                            <i class="fa-solid fa-plus"></i> Add Channel
+                        </button>
+                        <button type="button" id="btn-save-channels" class="btn btn-primary">
+                            <i class="fa-solid fa-check"></i> Save & Apply Channels
+                        </button>
+                    </div>
+
+                    <div class="advanced-note mt-3">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span>Only the channels saved above will appear under <strong>3. Permitted Detection Channels</strong> in the designer, and generated combination tables will strictly reflect only the channels you check.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Suggestions / Feedback Modal -->
+    <div id="modal-feedback" class="modal">
+        <div class="modal-content glass-panel" style="max-width: 580px;">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-comment-dots"></i> Feedback & Suggestions (v1.0)</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <p class="modal-subtitle">Help improve SpectraPanel! Your feedback will be saved to your session and automatically downloaded as a timestamped log file.</p>
+            
+            <form id="feedback-form" class="mt-3">
+                <div class="form-group mb-2">
+                    <label for="fb-name">Your Name / Lab / Email (Optional):</label>
+                    <input type="text" id="fb-name" class="form-input" placeholder="e.g. Dr. Jane Doe (Smith Lab)">
+                </div>
+
+                <div class="form-group mb-2">
+                    <label for="fb-category">Category:</label>
+                    <select id="fb-category" class="form-select">
+                        <option value="Feature Request">Feature Request</option>
+                        <option value="New Reagent / Fluorophore Suggestion">New Reagent / Fluorophore Suggestion</option>
+                        <option value="Bug Report">Bug Report</option>
+                        <option value="General Feedback">General Feedback</option>
+                    </select>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="fb-message">Your Suggestion / Feedback *:</label>
+                    <textarea id="fb-message" class="form-input" rows="5" placeholder="Share your suggestions, feature requests, or improvements..." required></textarea>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline close-modal">Cancel</button>
+                    <button type="button" id="btn-submit-feedback" class="btn btn-primary">
+                        <i class="fa-solid fa-download"></i> Submit & Download Log
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Manual Entry Modal -->
+    <div id="modal-manual-entry" class="modal">
+        <div class="modal-content glass-panel" style="max-width: 680px;">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-circle-plus"></i> Manual Reagent Entry</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <p class="modal-subtitle">Add custom antibodies, dyes, or reporter lines directly into your active session.</p>
+            
+            <div class="tab-controls mt-3">
+                <button class="tab-btn entry-tab-btn active" data-target-tab="primaries">Primary Antibody</button>
+                <button class="tab-btn entry-tab-btn" data-target-tab="secondaries">Secondary Antibody</button>
+                <button class="tab-btn entry-tab-btn" data-target-tab="dyes">Direct Dye</button>
+                <button class="tab-btn entry-tab-btn" data-target-tab="reporters">Reporter</button>
+            </div>
+            
+            <div id="manual-form-container">
+                <form id="manual-entry-form" class="two-col-form mt-3"></form>
+                <div class="modal-actions mt-4">
+                    <button type="button" class="btn btn-outline close-modal">Cancel</button>
+                    <button id="btn-save-manual-entry" class="btn btn-primary">Save to Database</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Application Scripts -->
+    <script src="js/dataLoader.js"></script>
+    <script src="js/combinationEngine.js"></script>
+    <script src="js/uiComponents.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

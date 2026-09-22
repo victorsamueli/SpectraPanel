@@ -1,0 +1,8 @@
+id,name,category,target_structure,fluorophore,color,excitation_nm,emission_nm,catalog_no,supplier,dilution,staining_step,incubation_time,fixation_compatible,live_cell_compatible,notes
+dye_001,DAPI,Nuclear,DNA,DAPI,Blue,360,460,D1306,Invitrogen,300 nM,post_secondary,"5 min, RT",Yes,Yes,Avoid prolonged UV exposure
+dye_002,Hoechst 33342,Nuclear,DNA,Hoechst 33342,Blue,350,461,H1399,Invitrogen,1 µg/mL,post_secondary,"10 min, RT",Yes,Yes,Cell permeant
+dye_003,Phalloidin-AF488,Cytoskeleton,F-Actin,Alexa Fluor 488,Green,495,518,A12379,Invitrogen,1:40,with_secondary,"RT, 1h, dark",Yes,No,Requires permeabilization; Methanol can disrupt F-actin
+dye_004,Phalloidin-AF594,Cytoskeleton,F-Actin,Alexa Fluor 594,Red,590,617,A12381,Invitrogen,1:40,with_secondary,"RT, 1h, dark",Yes,No,Requires permeabilization; Methanol can disrupt F-actin
+dye_005,SiR-Actin,Cytoskeleton,F-Actin,SiR,Far-Red,652,674,CY-SC001,Spirochrome,100 nM,live_cell,"1h, 37°C",Yes,Yes,Cell permeable
+dye_006,MitoTracker Red,Organelle,Mitochondria,MitoTracker Red CMXRos,Red,579,599,M7512,Invitrogen,100 nM,live_cell,"30 min, 37°C",Yes,Yes,Fixable after staining
+dye_007,WGA-AF488,Membrane,Sialic acid/GlcNAc,Alexa Fluor 488,Green,495,519,W11261,Invitrogen,5 µg/mL,live_cell,"10 min, RT",Yes,Yes,Fixable
