@@ -27,53 +27,6 @@ Live demo and hosted version: **GitHub Pages compatible with zero backend requir
 
 ---
 
-## 🚀 Hosting on GitHub Pages (Deployment Guide)
-
-SpectraPanel runs 100% in the browser (HTML5, CSS3, JavaScript, PapaParse, SheetJS). It requires no server, no database installation, and costs nothing to host.
-
-### Step 1: Create a New GitHub Repository
-1. Go to [github.com/new](https://github.com/new).
-2. Name your repository (e.g., `SpectraPanel`).
-3. Set the repository visibility to **Public**.
-4. Leave "Add a README file", ".gitignore", and license **unchecked** (we already have them).
-5. Click **Create repository**.
-
-### Step 2: Push Your Local Code
-In your project directory terminal, run:
-
-```bash
-# 1. Add your GitHub repository as the remote origin
-git remote add origin https://github.com/<YOUR-USERNAME>/SpectraPanel.git
-
-# 2. Push to the main branch
-git push -u origin main
-```
-*(Replace `<YOUR-USERNAME>` with your GitHub username).*
-
-### Step 3: Enable GitHub Pages
-1. On GitHub, navigate to your repository's **Settings** tab (top right).
-2. Click **Pages** in the left sidebar menu (under the "Code and automation" section).
-3. Under **Build and deployment** > **Source**, choose **Deploy from a branch**.
-4. Under **Branch**, select `main` and folder `/(root)`, then click **Save**.
-5. Wait 1–2 minutes. GitHub will give you your live URL:
-   ```
-   https://<YOUR-USERNAME>.github.io/SpectraPanel/
-   ```
-
----
-
-## 💻 Local Development
-
-To run and test locally:
-
-```bash
-# Using Python 3 built-in server:
-python -m http.server 8000
-```
-Open your browser and navigate to `http://localhost:8000`.
-
----
-
 ## 📂 File Structure
 
 ```
