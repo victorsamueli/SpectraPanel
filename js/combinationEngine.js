@@ -8,167 +8,173 @@ const CombinationEngine = {
     },
 
     generateCombinations(config) {
-        // config: { application, mode, allowedChannels, configuredChannels, reporters, targets, dyes, lockedTargets, lockedDyes }
-        const application = config.application || 'ICC';
-        const targets = config.targets || [];
-        const lockedTargets = config.lockedTargets || [];
-        const reporters = config.reporters || [];
-        const dyes = config.dyes || [];
-        const lockedDyes = config.lockedDyes || [];
-        const allowedChannels = (config.allowedChannels && config.allowedChannels.length > 0)
-            ? config.allowedChannels
-            : ['Blue', 'Green', 'Red', 'Far-Red'];
-        const configuredChannels = config.configuredChannels || [];
+        try {
+            // config: { application, mode, allowedChannels, configuredChannels, reporters, targets, dyes, lockedTargets, lockedDyes }
+            const application = config.application || 'ICC';
+            const targets = config.targets || [];
+            const lockedTargets = config.lockedTargets || [];
+            const reporters = config.reporters || [];
+            const dyes = config.dyes || [];
+            const lockedDyes = config.lockedDyes || [];
+            const allowedChannels = (config.allowedChannels && config.allowedChannels.length > 0)
+                ? config.allowedChannels
+                : ['Blue', 'Green', 'Red', 'Far-Red'];
+            const configuredChannels = config.configuredChannels || [];
 
-        // Case: No primary antibodies selected, but dyes or reporters are selected
-        if (targets.length === 0) {
-            if (reporters.length > 0 || dyes.length > 0) {
-                const panelConfig = {
-                    primaries: [],
-                    reporters: reporters,
-                    dyes: dyes,
-                    channels_used: [],
-                    targets_requested: [],
-                    targets_covered: [],
-                    assignedDyes: []
-                };
+            // Case: No primary antibodies selected, but dyes or reporters are selected
+            if (targets.length === 0) {
+                if (reporters.length > 0 || dyes.length > 0) {
+                    const panelConfig = {
+                        primaries: [],
+                        reporters: reporters,
+                        dyes: dyes,
+                        channels_used: [],
+                        targets_requested: [],
+                        targets_covered: [],
+                        assignedDyes: []
+                    };
 
-                let comboValid = true;
-                reporters.forEach(rep => {
-                    const c = this.matchChannelForReagent(rep, configuredChannels, allowedChannels);
-                    if (c && allowedChannels.includes(c)) {
-                        panelConfig.channels_used.push(c);
-                    }
-                });
+                    let comboValid = true;
+                    reporters.forEach(rep => {
+                        const c = this.matchChannelForReagent(rep, configuredChannels, allowedChannels);
+                        if (c && allowedChannels.includes(c)) {
+                            panelConfig.channels_used.push(c);
+                        }
+                    });
 
-                for (let dye of dyes) {
-                    const c = this.matchChannelForReagent(dye, configuredChannels, allowedChannels);
-                    if (c && this.isChannelAvailable(panelConfig.channels_used, c, application, allowedChannels)) {
-                        panelConfig.channels_used.push(c);
-                        panelConfig.assignedDyes.push({ dye: dye, channel: c });
-                    } else if (lockedDyes.includes(dye.id)) {
-                        comboValid = false;
-                        break;
-                    }
-                }
-
-                if (comboValid) {
-                    panelConfig.fixation = this.checkFixationCompatibility(panelConfig);
-                    panelConfig.score = 100;
-                    return { combinations: [panelConfig] };
-                }
-            }
-            return { combinations: [] };
-        }
-
-        // 1. Filter primaries validated for this application
-        let validPrimaries = window.db.primaries.filter(p => this.hasApplication(p.applications, application));
-        
-        // 1b. If live-cell mode, filter further
-        if (config.mode === 'Live') {
-            validPrimaries = validPrimaries.filter(p => p.live_cell_compatible === 'Yes');
-        }
-
-        let fullCombos = [];
-        
-        // 2. Generate target subsets (for partial panels)
-        let maxAvailableChannels = allowedChannels.length - reporters.length;
-        if (maxAvailableChannels < 1) maxAvailableChannels = 1;
-
-        const targetSubsets = this.generateSubsets(targets, lockedTargets, maxAvailableChannels);
-        
-        for (let subset of targetSubsets) {
-            let targetPrimariesList = [];
-            let subsetValid = true;
-            for (let target of subset) {
-                let matches = validPrimaries.filter(p => p.target.toLowerCase() === target.toLowerCase());
-                if (matches.length === 0) {
-                    subsetValid = false;
-                    break;
-                }
-                targetPrimariesList.push(matches);
-            }
-            if (!subsetValid) continue;
-
-            let primaryCombos = this.cartesianProduct(targetPrimariesList);
-            primaryCombos = primaryCombos.filter(combo => this.checkPrimaryConflict(combo, application));
-
-            for (let pCombo of primaryCombos) {
-                let panelConfig = {
-                    primaries: [], 
-                    reporters: reporters,
-                    dyes: dyes,
-                    channels_used: [],
-                    targets_requested: targets,
-                    targets_covered: subset,
-                    assignedDyes: []
-                };
-
-                reporters.forEach(rep => {
-                    const c = this.matchChannelForReagent(rep, configuredChannels, allowedChannels);
-                    if (c && allowedChannels.includes(c)) {
-                        panelConfig.channels_used.push(c);
-                    }
-                });
-
-                let comboValid = true;
-                for (let p of pCombo) {
-                    if (p.conjugated_fluorophore) {
-                        let c = this.matchChannelForReagent({ color: p.conjugated_color, name: p.conjugated_fluorophore }, configuredChannels, allowedChannels);
+                    for (let dye of dyes) {
+                        const c = this.matchChannelForReagent(dye, configuredChannels, allowedChannels);
                         if (c && this.isChannelAvailable(panelConfig.channels_used, c, application, allowedChannels)) {
-                            panelConfig.primaries.push({ primary: p, secondary: null, channel: c, is_direct: true });
                             panelConfig.channels_used.push(c);
-                        } else {
-                            comboValid = false;
-                            break;
-                        }
-                    } else {
-                        let validSecs = this.findCompatibleSecondaries(p, application, panelConfig.channels_used, pCombo, allowedChannels, configuredChannels);
-                        if (validSecs.length > 0) {
-                            let bestSec = validSecs[0]; 
-                            let c = bestSec.channel_assigned;
-                            panelConfig.primaries.push({ primary: p, secondary: bestSec, channel: c, is_direct: false });
-                            panelConfig.channels_used.push(c);
-                        } else {
+                            panelConfig.assignedDyes.push({ dye: dye, channel: c });
+                        } else if (lockedDyes.includes(dye.id)) {
                             comboValid = false;
                             break;
                         }
                     }
+
+                    if (comboValid) {
+                        panelConfig.fixation = this.checkFixationCompatibility(panelConfig);
+                        panelConfig.score = 100;
+                        return { combinations: [panelConfig] };
+                    }
                 }
+                return { combinations: [] };
+            }
 
-                if (!comboValid) continue;
+            // 1. Filter primaries validated for this application
+            const allPrimaries = (window.db && Array.isArray(window.db.primaries)) ? window.db.primaries : [];
+            let validPrimaries = allPrimaries.filter(p => this.hasApplication(p.applications, application));
+            
+            // 1b. If live-cell mode, filter further
+            if (config.mode === 'Live') {
+                validPrimaries = validPrimaries.filter(p => p.live_cell_compatible === 'Yes');
+            }
 
-                // Assign dyes
-                let assignedDyes = [];
-                for (let dye of dyes) {
-                    const c = this.matchChannelForReagent(dye, configuredChannels, allowedChannels);
-                    if (c && this.isChannelAvailable(panelConfig.channels_used, c, application, allowedChannels)) {
-                        panelConfig.channels_used.push(c);
-                        assignedDyes.push({ dye: dye, channel: c });
-                    } else if (lockedDyes.includes(dye.id)) {
-                        comboValid = false;
+            let fullCombos = [];
+            
+            // 2. Generate target subsets (for partial panels)
+            let maxAvailableChannels = allowedChannels.length - reporters.length;
+            if (maxAvailableChannels < 1) maxAvailableChannels = 1;
+
+            const targetSubsets = this.generateSubsets(targets, lockedTargets, maxAvailableChannels);
+            
+            for (let subset of targetSubsets) {
+                let targetPrimariesList = [];
+                let subsetValid = true;
+                for (let target of subset) {
+                    let matches = validPrimaries.filter(p => p.target && p.target.toLowerCase() === target.toLowerCase());
+                    if (matches.length === 0) {
+                        subsetValid = false;
                         break;
                     }
+                    targetPrimariesList.push(matches);
                 }
-                if (!comboValid) continue; 
+                if (!subsetValid) continue;
 
-                panelConfig.assignedDyes = assignedDyes;
-                panelConfig.fixation = this.checkFixationCompatibility(panelConfig);
-                panelConfig.score = this.scoreCombination(panelConfig, application);
-                
-                fullCombos.push(panelConfig);
+                let primaryCombos = this.cartesianProduct(targetPrimariesList);
+                primaryCombos = primaryCombos.filter(combo => this.checkPrimaryConflict(combo, application));
+
+                for (let pCombo of primaryCombos) {
+                    let panelConfig = {
+                        primaries: [], 
+                        reporters: reporters,
+                        dyes: dyes,
+                        channels_used: [],
+                        targets_requested: targets,
+                        targets_covered: subset,
+                        assignedDyes: []
+                    };
+
+                    reporters.forEach(rep => {
+                        const c = this.matchChannelForReagent(rep, configuredChannels, allowedChannels);
+                        if (c && allowedChannels.includes(c)) {
+                            panelConfig.channels_used.push(c);
+                        }
+                    });
+
+                    let comboValid = true;
+                    for (let p of pCombo) {
+                        if (p.conjugated_fluorophore) {
+                            let c = this.matchChannelForReagent({ color: p.conjugated_color, name: p.conjugated_fluorophore }, configuredChannels, allowedChannels);
+                            if (c && this.isChannelAvailable(panelConfig.channels_used, c, application, allowedChannels)) {
+                                panelConfig.primaries.push({ primary: p, secondary: null, channel: c, is_direct: true });
+                                panelConfig.channels_used.push(c);
+                            } else {
+                                comboValid = false;
+                                break;
+                            }
+                        } else {
+                            let validSecs = this.findCompatibleSecondaries(p, application, panelConfig.channels_used, pCombo, allowedChannels, configuredChannels);
+                            if (validSecs.length > 0) {
+                                let bestSec = validSecs[0]; 
+                                let c = bestSec.channel_assigned;
+                                panelConfig.primaries.push({ primary: p, secondary: bestSec, channel: c, is_direct: false });
+                                panelConfig.channels_used.push(c);
+                            } else {
+                                comboValid = false;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!comboValid) continue;
+
+                    // Assign dyes
+                    let assignedDyes = [];
+                    for (let dye of dyes) {
+                        const c = this.matchChannelForReagent(dye, configuredChannels, allowedChannels);
+                        if (c && this.isChannelAvailable(panelConfig.channels_used, c, application, allowedChannels)) {
+                            panelConfig.channels_used.push(c);
+                            assignedDyes.push({ dye: dye, channel: c });
+                        } else if (lockedDyes.includes(dye.id)) {
+                            comboValid = false;
+                            break;
+                        }
+                    }
+                    if (!comboValid) continue; 
+
+                    panelConfig.assignedDyes = assignedDyes;
+                    panelConfig.fixation = this.checkFixationCompatibility(panelConfig);
+                    panelConfig.score = this.scoreCombination(panelConfig, application);
+                    
+                    fullCombos.push(panelConfig);
+                }
             }
+
+            // Sort by targets covered (desc), then score (desc)
+            fullCombos.sort((a, b) => {
+                if (b.targets_covered.length !== a.targets_covered.length) {
+                    return b.targets_covered.length - a.targets_covered.length;
+                }
+                return b.score - a.score;
+            });
+            
+            return { combinations: fullCombos };
+        } catch (err) {
+            console.error("[SpectraPanel CombinationEngine] Error:", err);
+            return { error: err.message, combinations: [] };
         }
-
-        // Sort by targets covered (desc), then score (desc)
-        fullCombos.sort((a, b) => {
-            if (b.targets_covered.length !== a.targets_covered.length) {
-                return b.targets_covered.length - a.targets_covered.length;
-            }
-            return b.score - a.score;
-        });
-        
-        return { combinations: fullCombos };
     },
 
     generateSubsets(targets, lockedTargets, maxChannels) {
@@ -238,14 +244,16 @@ const CombinationEngine = {
     },
 
     findCompatibleSecondaries(primary, application, usedChannels, allPrimaries, allowedChannels, configuredChannels) {
-        let validSecs = window.db.secondaries.filter(s => this.hasApplication(s.applications, application));
-        validSecs = validSecs.filter(s => s.anti_host && s.anti_host.toLowerCase() === primary.host.toLowerCase());
+        const secDb = (window.db && Array.isArray(window.db.secondaries)) ? window.db.secondaries : [];
+        let validSecs = secDb.filter(s => this.hasApplication(s.applications, application));
+        const priHost = (primary.host || '').toLowerCase();
+        validSecs = validSecs.filter(s => s.anti_host && s.anti_host.toLowerCase() === priHost);
         
         let sameHostCount = allPrimaries.filter(p => !p.conjugated_fluorophore && p.host === primary.host).length;
         if (sameHostCount > 1) {
             validSecs = validSecs.filter(s => s.anti_isotype === primary.isotype);
         } else {
-            validSecs = validSecs.filter(s => s.anti_isotype === primary.isotype || s.anti_isotype.includes("H+L") || s.anti_isotype === "IgG");
+            validSecs = validSecs.filter(s => s.anti_isotype === primary.isotype || (s.anti_isotype && s.anti_isotype.includes("H+L")) || s.anti_isotype === "IgG");
         }
 
         if (application === 'WB') {
@@ -269,50 +277,80 @@ const CombinationEngine = {
         return compatible;
     },
 
+    getInferredChannelColor(ch) {
+        if (!ch) return '';
+        if (ch.color) return String(ch.color).toLowerCase();
+        const name = (ch.name || '').toLowerCase();
+        if (name.includes('blue') || name.includes('dapi') || name.includes('uv') || name.includes('hoechst') || name.includes('405')) return 'blue';
+        if (name.includes('green') || name.includes('fitc') || name.includes('gfp') || name.includes('488')) return 'green';
+        if (name.includes('orange') || name.includes('594') || name.includes('texas')) return 'orange';
+        if (name.includes('far') || name.includes('cy5') || name.includes('647') || name.includes('deep')) return 'far-red';
+        if (name.includes('near') || name.includes('nir') || name.includes('cy7') || name.includes('750') || name.includes('800')) return 'near-ir';
+        if (name.includes('red') || name.includes('555') || name.includes('568') || name.includes('tritc') || name.includes('mcherry') || name.includes('cy3')) return 'red';
+
+        // Optical fallback based on emission midpoint
+        const emMid = ((parseFloat(ch.em_min) || 0) + (parseFloat(ch.em_max) || 0)) / 2;
+        if (emMid > 0) {
+            if (emMid < 490) return 'blue';
+            if (emMid < 550) return 'green';
+            if (emMid < 605) return 'red';
+            if (emMid < 640) return 'orange';
+            if (emMid < 730) return 'far-red';
+            return 'near-ir';
+        }
+        return name;
+    },
+
     matchChannelForReagent(reagent, configuredChannels, allowedChannels) {
-        if (!reagent) return null;
+        if (!reagent || !allowedChannels || allowedChannels.length === 0) return null;
         
         const ex = parseFloat(reagent.excitation_nm);
         const em = parseFloat(reagent.emission_nm);
-        const rColor = (reagent.color || reagent.fluorophore || reagent.name || '').toLowerCase();
+        const rColor = (reagent.color || reagent.fluorophore || reagent.name || reagent.reporter_name || '').toLowerCase();
+        const rFluor = (reagent.fluorophore || reagent.conjugate || reagent.reporter_name || reagent.name || '').toLowerCase();
 
         // 1. Try matching by wavelength ranges against configured channels
-        if (!isNaN(ex) && !isNaN(em) && configuredChannels && configuredChannels.length > 0) {
+        if (!isNaN(ex) && !isNaN(em) && Array.isArray(configuredChannels) && configuredChannels.length > 0) {
             for (let ch of configuredChannels) {
-                if (!allowedChannels.includes(ch.name)) continue;
+                if (!ch || !allowedChannels.includes(ch.name)) continue;
                 if (ex >= ch.ex_min && ex <= ch.ex_max && em >= ch.em_min && em <= ch.em_max) {
                     return ch.name;
                 }
             }
         }
 
-        // 2. Fallback: match by color name / keyword
-        if (configuredChannels && configuredChannels.length > 0) {
+        // 2. Fallback: match by color name / keyword against configuredChannels
+        if (Array.isArray(configuredChannels) && configuredChannels.length > 0) {
             for (let ch of configuredChannels) {
-                if (!allowedChannels.includes(ch.name)) continue;
-                const chColor = ch.color.toLowerCase();
-                const chName = ch.name.toLowerCase();
+                if (!ch || !allowedChannels.includes(ch.name)) continue;
+                const chName = (ch.name || '').toLowerCase();
+                const chColor = this.getInferredChannelColor(ch);
                 
-                if (rColor.includes(chColor) || rColor.includes(chName)) return ch.name;
-                if (chColor === 'blue' && (rColor.includes('dapi') || rColor.includes('bfp') || rColor.includes('hoechst'))) return ch.name;
-                if (chColor === 'green' && (rColor.includes('fitc') || rColor.includes('gfp') || rColor.includes('488'))) return ch.name;
-                if (chColor === 'orange' && (rColor.includes('594') || rColor.includes('texas'))) return ch.name;
-                if (chColor === 'red' && (rColor.includes('tritc') || rColor.includes('555') || rColor.includes('568') || rColor.includes('mcherry'))) return ch.name;
-                if (chColor === 'far-red' && (rColor.includes('cy5') || rColor.includes('647') || rColor.includes('alexa 647'))) return ch.name;
-                if (chColor === 'near-ir' && (rColor.includes('750') || rColor.includes('cy7') || rColor.includes('800'))) return ch.name;
+                // Exact or substring match of channel name / color in reagent descriptor
+                if (rColor && (rColor.includes(chName) || (chColor && rColor.includes(chColor)))) return ch.name;
+                if (rFluor && (rFluor.includes(chName) || (chColor && rFluor.includes(chColor)))) return ch.name;
+
+                // Color family keyword matches
+                if (chColor === 'blue' && (rColor.includes('blue') || rColor.includes('dapi') || rColor.includes('bfp') || rColor.includes('hoechst') || rFluor.includes('dapi') || rFluor.includes('bfp') || rFluor.includes('hoechst') || rFluor.includes('405'))) return ch.name;
+                if (chColor === 'green' && (rColor.includes('green') || rColor.includes('fitc') || rColor.includes('gfp') || rColor.includes('488') || rFluor.includes('fitc') || rFluor.includes('gfp') || rFluor.includes('488') || rFluor.includes('af488'))) return ch.name;
+                if (chColor === 'orange' && (rColor.includes('orange') || rColor.includes('594') || rColor.includes('texas') || rColor.includes('568') || rFluor.includes('594') || rFluor.includes('texas'))) return ch.name;
+                if (chColor === 'red' && (rColor.includes('red') || rColor.includes('tritc') || rColor.includes('555') || rColor.includes('568') || rColor.includes('594') || rColor.includes('mcherry') || rColor.includes('cy3') || rFluor.includes('555') || rFluor.includes('568') || rFluor.includes('594') || rFluor.includes('mitotracker') || rFluor.includes('mcherry') || rFluor.includes('cy3'))) return ch.name;
+                if (chColor === 'far-red' && (rColor.includes('far-red') || rColor.includes('far red') || rColor.includes('cy5') || rColor.includes('647') || rColor.includes('alexa 647') || rColor.includes('sir') || rFluor.includes('cy5') || rFluor.includes('647') || rFluor.includes('sir'))) return ch.name;
+                if (chColor === 'near-ir' && (rColor.includes('near-ir') || rColor.includes('near ir') || rColor.includes('750') || rColor.includes('cy7') || rColor.includes('800') || rFluor.includes('750') || rFluor.includes('cy7') || rFluor.includes('800'))) return ch.name;
             }
         }
 
         // 3. Fallback: standard color name matching directly in allowedChannels
         for (let chName of allowedChannels) {
-            const chLower = chName.toLowerCase();
-            if (rColor.includes(chLower)) return chName;
-            if (chLower.includes('blue') && (rColor.includes('dapi') || rColor.includes('bfp'))) return chName;
-            if (chLower.includes('green') && (rColor.includes('fitc') || rColor.includes('gfp') || rColor.includes('488'))) return chName;
-            if (chLower.includes('orange') && (rColor.includes('594') || rColor.includes('texas'))) return chName;
-            if (chLower.includes('red') && (rColor.includes('tritc') || rColor.includes('555') || rColor.includes('mcherry'))) return chName;
-            if (chLower.includes('far-red') && (rColor.includes('cy5') || rColor.includes('647'))) return chName;
-            if (chLower.includes('near-ir') && (rColor.includes('750') || rColor.includes('cy7'))) return chName;
+            const chLower = (chName || '').toLowerCase();
+            if (rColor && chLower && (rColor.includes(chLower) || chLower.includes(rColor))) return chName;
+            if (rFluor && chLower && (rFluor.includes(chLower) || chLower.includes(rFluor))) return chName;
+            if (chLower.includes('blue') && (rColor.includes('dapi') || rColor.includes('bfp') || rColor.includes('hoechst') || rFluor.includes('dapi'))) return chName;
+            if (chLower.includes('green') && (rColor.includes('fitc') || rColor.includes('gfp') || rColor.includes('488') || rFluor.includes('488') || rFluor.includes('fitc'))) return chName;
+            if (chLower.includes('orange') && (rColor.includes('594') || rColor.includes('texas') || rFluor.includes('594'))) return chName;
+            if (chLower.includes('red') && (rColor.includes('red') || rColor.includes('tritc') || rColor.includes('555') || rColor.includes('568') || rColor.includes('594') || rColor.includes('mcherry') || rFluor.includes('555') || rFluor.includes('568') || rFluor.includes('594'))) return chName;
+            if (chLower.includes('far') && (rColor.includes('cy5') || rColor.includes('647') || rColor.includes('sir') || rFluor.includes('647') || rFluor.includes('cy5'))) return chName;
+            if (chLower.includes('near') && (rColor.includes('750') || rColor.includes('cy7') || rColor.includes('800') || rFluor.includes('cy7') || rFluor.includes('750'))) return chName;
         }
 
         return null;
@@ -325,9 +363,15 @@ const CombinationEngine = {
 
     checkFixationCompatibility(panelConfig) {
         let reqs = [];
-        panelConfig.primaries.forEach(p => reqs.push({ name: p.primary.target, compat: p.primary.fixation_compatible || "" }));
-        panelConfig.reporters.forEach(r => reqs.push({ name: r.reporter_name, compat: r.recommended_fixation || "" }));
-        panelConfig.assignedDyes.forEach(d => reqs.push({ name: d.dye.name, compat: d.dye.notes || "" })); 
+        (panelConfig.primaries || []).forEach(p => {
+            if (p && p.primary) reqs.push({ name: p.primary.target || 'Target', compat: p.primary.fixation_compatible || "" });
+        });
+        (panelConfig.reporters || []).forEach(r => {
+            if (r) reqs.push({ name: r.reporter_name || 'Reporter', compat: r.recommended_fixation || "" });
+        });
+        (panelConfig.assignedDyes || []).forEach(d => {
+            if (d && d.dye) reqs.push({ name: d.dye.name || 'Dye', compat: d.dye.notes || d.dye.fixation_compatible || "" }); 
+        });
         
         let needsMethanol = false;
         let needsPFA = false;
@@ -349,14 +393,14 @@ const CombinationEngine = {
     scoreCombination(panel, application) {
         let score = 100;
         
-        if (!panel.fixation.valid) score -= 30;
+        if (panel.fixation && !panel.fixation.valid) score -= 30;
 
-        let hosts = new Set(panel.primaries.map(p => p.primary.host));
+        let hosts = new Set((panel.primaries || []).map(p => (p && p.primary) ? p.primary.host : '').filter(Boolean));
         score += (hosts.size * 5);
 
         let otherHosts = Array.from(hosts);
-        panel.primaries.forEach(p => {
-            if (p.secondary && p.secondary.cross_adsorbed) {
+        (panel.primaries || []).forEach(p => {
+            if (p && p.primary && p.secondary && p.secondary.cross_adsorbed) {
                 otherHosts.forEach(h => {
                     if (h !== p.primary.host && p.secondary.cross_adsorbed.includes(h)) {
                         score += 5; 

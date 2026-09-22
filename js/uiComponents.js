@@ -6,7 +6,7 @@ const UI = {
         configuredChannels: [
             { id: 'ch_blue', name: 'Blue', hexColor: '#38bdf8', ex_min: 350, ex_max: 405, em_min: 420, em_max: 480 },
             { id: 'ch_green', name: 'Green', hexColor: '#34d399', ex_min: 470, ex_max: 495, em_min: 510, em_max: 540 },
-            { id: 'ch_red', name: 'Red', hexColor: '#f87171', ex_min: 540, ex_max: 570, em_min: 565, em_max: 610 },
+            { id: 'ch_red', name: 'Red', hexColor: '#f87171', ex_min: 540, ex_max: 595, em_min: 565, em_max: 625 },
             { id: 'ch_farred', name: 'Far-Red', hexColor: '#c084fc', ex_min: 630, ex_max: 655, em_min: 660, em_max: 710 }
         ],
         selectedReagents: [], // [{ id, name, type: 'Antibody'|'Dye'|'FP', dbRef, locked: boolean }]
@@ -361,7 +361,7 @@ const UI = {
             this.state.configuredChannels = [
                 { id: 'ch_blue', name: 'Blue', hexColor: '#38bdf8', ex_min: 350, ex_max: 405, em_min: 420, em_max: 480 },
                 { id: 'ch_green', name: 'Green', hexColor: '#34d399', ex_min: 470, ex_max: 495, em_min: 510, em_max: 540 },
-                { id: 'ch_red', name: 'Red', hexColor: '#f87171', ex_min: 540, ex_max: 570, em_min: 565, em_max: 610 },
+                { id: 'ch_red', name: 'Red', hexColor: '#f87171', ex_min: 540, ex_max: 595, em_min: 565, em_max: 625 },
                 { id: 'ch_farred', name: 'Far-Red', hexColor: '#c084fc', ex_min: 630, ex_max: 655, em_min: 660, em_max: 710 }
             ];
         } else if (presetName === '5ch') {
@@ -933,7 +933,7 @@ ${message}
                                 ${channels.map(ch => {
                                     // Find channel custom hex color
                                     const chObj = (this.state.configuredChannels || []).find(c => c.name === ch);
-                                    const hex = chObj ? chObj.hexColor : (ch === 'HRP' ? '#fbbf24' : '#38bdf8');
+                                    const hex = (chObj && chObj.hexColor) ? chObj.hexColor : (ch === 'HRP' ? '#fbbf24' : '#38bdf8');
                                     return `<th style="border-top: 3px solid ${hex};"><span class="ch-dot" style="background-color: ${hex};"></span>${ch}</th>`;
                                 }).join('')}
                             </tr>

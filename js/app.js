@@ -165,11 +165,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 lockedDyes: selectedConfig.lockedDyes
             };
 
-            console.log("[IFGuidePy] Generating combinations with config:", config);
-            const results = CombinationEngine.generateCombinations(config);
-            console.log("[IFGuidePy] Results generated:", results);
-            
-            UI.renderResults(results, config);
+            try {
+                console.log("[SpectraPanel] Generating combinations with config:", config);
+                const results = CombinationEngine.generateCombinations(config);
+                console.log("[SpectraPanel] Results generated:", results);
+                UI.renderResults(results, config);
+            } catch (err) {
+                console.error("[SpectraPanel] Error in combination generation workflow:", err);
+                UI.renderResults({ error: err.message }, config);
+            }
         });
     }
 
