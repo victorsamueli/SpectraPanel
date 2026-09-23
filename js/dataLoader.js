@@ -71,7 +71,7 @@ const DataLoader = {
         }
     },
 
-    async loadDemoData() {
+    async loadDemoData(persist = false) {
         const statusEl = document.getElementById('upload-status');
         if (statusEl) {
             statusEl.innerText = "Loading Demo Data...";
@@ -86,10 +86,12 @@ const DataLoader = {
                 this.loadCSV('data/channels.csv', 'channels')
             ]);
             console.log("[SpectraPanel] Sample demo data loaded:", window.db);
-            this.saveToLocalStorage();
+            if (persist) {
+                this.saveToLocalStorage();
+            }
             if (statusEl) {
                 statusEl.innerText = "Demo Data";
-                statusEl.className = "status-pill status-success";
+                statusEl.className = "status-pill status-demo";
             }
             document.dispatchEvent(new CustomEvent('dbLoaded'));
         } catch (error) {

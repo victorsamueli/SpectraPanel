@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnLoadDemo = document.getElementById('btn-load-demo');
     if (btnLoadDemo) {
         btnLoadDemo.addEventListener('click', () => {
-            DataLoader.loadDemoData();
+            DataLoader.loadDemoData(false);
         });
     }
 
