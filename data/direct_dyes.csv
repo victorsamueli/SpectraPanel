@@ -1,9 +1,11 @@
 id,name,target_structure,color,excitation_nm,emission_nm,live_cell_compatible,make,catalogue
-dye_001,DAPI,DNA,Blue,360,460,Yes,Invitrogen,D1306
-dye_002,Hoechst 33342,DNA,Blue,350,461,Yes,Invitrogen,H1399
-dye_003,Phalloidin-AF488,F-Actin,Green,495,518,No,Invitrogen,A12379
-dye_004,Phalloidin-AF594,F-Actin,Red,590,617,No,Invitrogen,A12381
-dye_005,SiR-Actin,F-Actin,Far-Red,652,674,Yes,Spirochrome,CY-SC001
-dye_006,MitoTracker Red,Mitochondria,Red,579,599,Yes,Invitrogen,M7512
-dye_007,WGA-AF488,Membrane,Green,495,519,Yes,Invitrogen,W11261
-dye_008,Streptavidin-AF488,Biotinylated Targets,Green,490,525,No,Invitrogen,S32354
+dye_001,DAPI,DNA,Blue,360,460,Yes,Generic Bio,DEMO-D01
+dye_002,Hoechst 33342,DNA,Blue,350,461,Yes,Generic Bio,DEMO-D02
+dye_003,Phalloidin-AF488,F-Actin,Green,495,518,No,Generic Bio,DEMO-D03
+dye_004,Phalloidin-AF594,F-Actin,Red,590,617,No,Generic Bio,DEMO-D04
+dye_005,Phalloidin-AF647,F-Actin,Far-Red,650,668,No,Generic Bio,DEMO-D05
+dye_006,SiR-Actin,F-Actin,Far-Red,652,674,Yes,Generic Bio,DEMO-D06
+dye_007,MitoTracker Green,Mitochondria,Green,490,516,Yes,Generic Bio,DEMO-D07
+dye_008,MitoTracker Red,Mitochondria,Red,579,599,Yes,Generic Bio,DEMO-D08
+dye_009,WGA-AF488,Membrane,Green,495,519,Yes,Generic Bio,DEMO-D09
+dye_010,DRAQ5,DNA,Far-Red,646,697,Yes,Generic Bio,DEMO-D10

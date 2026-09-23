@@ -338,9 +338,9 @@ const DataLoader = {
             [""],
             ["Sheet Column Reference & Conventions:"],
             ["• Primaries Sheet:"],
-            ["    - target: Target protein or marker (e.g., 'Pax7', 'Ki67')"],
+            ["    - target: Target protein or marker (e.g., 'Ki67', 'alpha-Tubulin')"],
             ["    - clonality: 'Monoclonal', 'Polyclonal', or 'Recombinant Monoclonal'"],
-            ["    - clone: Clone name or ID (e.g., 'DM1A', '5.8A', 'PAX7/497')"],
+            ["    - clone: Clone name or ID (e.g., 'SP6', 'DM1A')"],
             ["    - host: Primary host species (e.g., 'Mouse', 'Rabbit')"],
             ["    - isotype: Primary isotype (e.g., 'IgG1', 'IgG2a', 'IgG2b', 'IgG', 'IgM')"],
             ["    - make: Manufacturer / Supplier (e.g., 'Invitrogen', 'Sigma-Aldrich', 'DSHB', 'CST')"],
@@ -380,22 +380,8 @@ const DataLoader = {
                 clone: "SP6",
                 host: "Rabbit",
                 isotype: "IgG",
-                make: "Abcam",
-                catalog: "ab16667",
-                applications: "ICC, IHC, WB",
-                conjugated_color: "",
-                fixation_compatible: "PFA, Methanol",
-                live_cell_compatible: "No",
-                comments: ""
-            },
-            {
-                target: "Pax7",
-                clonality: "Monoclonal",
-                clone: "PAX7/497",
-                host: "Mouse",
-                isotype: "IgG1",
-                make: "NeoBiotechnologies",
-                catalog: "5081-MSM1-P0",
+                make: "Generic Bio",
+                catalog: "DEMO-P01",
                 applications: "ICC, IHC, WB",
                 conjugated_color: "",
                 fixation_compatible: "PFA, Methanol",
@@ -408,8 +394,8 @@ const DataLoader = {
                 clone: "DM1A",
                 host: "Mouse",
                 isotype: "IgG1",
-                make: "Sigma-Aldrich",
-                catalog: "T9026",
+                make: "Generic Bio",
+                catalog: "DEMO-P02",
                 applications: "ICC, IHC, WB",
                 conjugated_color: "",
                 fixation_compatible: "PFA, Methanol",
@@ -421,14 +407,28 @@ const DataLoader = {
                 clonality: "Monoclonal",
                 clone: "AC-15",
                 host: "Mouse",
-                isotype: "IgG1",
-                make: "Sigma-Aldrich",
-                catalog: "A9224",
+                isotype: "IgG2a",
+                make: "Generic Bio",
+                catalog: "DEMO-P03",
                 applications: "ICC, IHC, WB",
-                conjugated_color: "Green",
+                conjugated_color: "",
                 fixation_compatible: "PFA",
                 live_cell_compatible: "No",
-                comments: "Directly conjugated FITC"
+                comments: ""
+            },
+            {
+                target: "Lamin A/C",
+                clonality: "Polyclonal",
+                clone: "",
+                host: "Rabbit",
+                isotype: "IgG",
+                make: "Generic Bio",
+                catalog: "DEMO-P04",
+                applications: "ICC, IHC, WB",
+                conjugated_color: "",
+                fixation_compatible: "PFA",
+                live_cell_compatible: "No",
+                comments: ""
             }
         ];
         const wsPrimaries = XLSX.utils.json_to_sheet(primariesData);
@@ -444,34 +444,34 @@ const DataLoader = {
                 excitation_nm: "490",
                 emission_nm: "525",
                 applications: "ICC, IHC, WB",
-                make: "Invitrogen",
-                catalogue: "A21206",
-                comments: "Received Jan 2020"
-            },
-            {
-                anti_host: "Mouse",
-                anti_isotype: "IgG (H+L)",
-                host: "Goat",
-                conjugate: "Alexa Fluor Plus 647",
-                conjugate_type: "Fluorophore",
-                excitation_nm: "650",
-                emission_nm: "665",
-                applications: "ICC, IHC, WB",
-                make: "Invitrogen",
-                catalogue: "A32728",
+                make: "Generic Bio",
+                catalogue: "DEMO-S01",
                 comments: ""
             },
             {
-                anti_host: "Rabbit",
-                anti_isotype: "IgG (H+L)",
+                anti_host: "Mouse",
+                anti_isotype: "IgG1",
                 host: "Goat",
                 conjugate: "Alexa Fluor Plus 555",
                 conjugate_type: "Fluorophore",
                 excitation_nm: "555",
                 emission_nm: "565",
                 applications: "ICC, IHC, WB",
-                make: "Invitrogen",
-                catalogue: "A32732",
+                make: "Generic Bio",
+                catalogue: "DEMO-S02",
+                comments: ""
+            },
+            {
+                anti_host: "Mouse",
+                anti_isotype: "IgG2a",
+                host: "Goat",
+                conjugate: "Alexa Fluor 594",
+                conjugate_type: "Fluorophore",
+                excitation_nm: "590",
+                emission_nm: "617",
+                applications: "ICC, IHC, WB",
+                make: "Generic Bio",
+                catalogue: "DEMO-S03",
                 comments: ""
             },
             {
@@ -482,9 +482,9 @@ const DataLoader = {
                 conjugate_type: "HRP",
                 excitation_nm: "",
                 emission_nm: "",
-                applications: "WB",
-                make: "Invitrogen",
-                catalogue: "A15999",
+                applications: "WB, ICC",
+                make: "Generic Bio",
+                catalogue: "DEMO-S10",
                 comments: ""
             }
         ];
@@ -499,8 +499,8 @@ const DataLoader = {
                 excitation_nm: "360",
                 emission_nm: "460",
                 live_cell_compatible: "Yes",
-                make: "Invitrogen",
-                catalogue: "D1306"
+                make: "Generic Bio",
+                catalogue: "DEMO-D01"
             },
             {
                 name: "Phalloidin-AF488",
@@ -509,8 +509,8 @@ const DataLoader = {
                 excitation_nm: "495",
                 emission_nm: "518",
                 live_cell_compatible: "No",
-                make: "Invitrogen",
-                catalogue: "A12379"
+                make: "Generic Bio",
+                catalogue: "DEMO-D03"
             },
             {
                 name: "SiR-Actin",
@@ -519,8 +519,8 @@ const DataLoader = {
                 excitation_nm: "652",
                 emission_nm: "674",
                 live_cell_compatible: "Yes",
-                make: "Spirochrome",
-                catalogue: "CY-SC001"
+                make: "Generic Bio",
+                catalogue: "DEMO-D06"
             }
         ];
         const wsDyes = XLSX.utils.json_to_sheet(dyesData);

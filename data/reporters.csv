@@ -1,5 +1,11 @@
-id,target,reporter,excitation_nm,emission_nm,promoter,cell_line,recommended_fixation,live_cell_compatible,notes
-rep_001,Tubulin,EGFP,488,507,CAG,mESC,2% PFA 10 min RT,Yes,Signal lost with methanol fixation
-rep_002,Actin,mCherry,587,610,CMV,HEK293,4% PFA 15 min RT,Yes,
-rep_003,Histone H2B,mTagBFP2,399,454,EF1a,HeLa,4% PFA 15 min RT,Yes,
-rep_004,Nestin,iRFP670,643,670,UbC,U2OS,4% PFA 15 min RT,Yes,
+id,target,reporter,color,excitation_nm,emission_nm,recommended_fixation
+rep_001,Tubulin,EGFP,Green,488,507,PFA
+rep_002,Actin,mCherry,Red,587,610,PFA
+rep_003,Mitochondria,tdTomato,Orange,554,581,PFA
+rep_004,Histone H2B,mTurquoise2,Blue,434,474,PFA
+rep_005,Peroxisome,mVenus,Green,515,528,PFA
+rep_006,Golgi,EYFP,Green,514,527,PFA
+rep_007,Endosome,mTagBFP2,Blue,399,454,PFA
+rep_008,Nucleus,iRFP670,Far-Red,643,670,PFA
+rep_009,Plasma Membrane,TagRFP,Orange,555,584,PFA
+rep_010,Vimentin,GFP,Green,488,509,PFA

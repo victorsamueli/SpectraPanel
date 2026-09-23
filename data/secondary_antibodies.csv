@@ -1,12 +1,11 @@
 id,anti_host,anti_isotype,host,conjugate,conjugate_type,color,excitation_nm,emission_nm,applications,make,catalogue,comments
-sab_001,Goat,IgG (H+L),Donkey,HRP,HRP,,,,WB,Invitrogen,A15999,Donkey anti-Goat HRP
-sab_002,Mouse,IgM,Goat,Alexa Fluor 488,Fluorophore,Green,490,525,"ICC, IHC, WB",Invitrogen,A21042,Goat anti-Mouse IgM (µ chain)
-sab_003,Rabbit,IgG (H+L),Donkey,Alexa Fluor 488,Fluorophore,Green,490,525,"ICC, IHC, WB",Invitrogen,A21206,Received Jan 2020
-sab_004,Chicken,IgY (H+L),Goat,Alexa Fluor 633,Fluorophore,Far-Red,632,647,"ICC, IHC, WB",Invitrogen,A21103,Common 4 deg box
-sab_005,Rabbit,IgG (H+L),Goat,Alexa Fluor 647,Fluorophore,Far-Red,650,665,"ICC, IHC, WB",Invitrogen,A21245,Goat anti-Rabbit IgG (H+L)
-sab_006,Mouse,IgG (H+L),Goat,Alexa Fluor 647,Fluorophore,Far-Red,650,665,"ICC, IHC, WB",Invitrogen,A21235,Goat anti-Mouse IgG (H+L)
-sab_007,Mouse,IgG (H+L),Goat,Alexa Fluor 488,Fluorophore,Green,490,525,"ICC, IHC, WB",Invitrogen,A11001,Goat anti-Mouse IgG (H+L)
-sab_008,Rabbit,IgG (H+L),Goat,Alexa Fluor Plus 647,Fluorophore,Far-Red,650,665,"ICC, IHC, WB",Invitrogen,A32733,Alexa Fluor Plus 647
-sab_009,Mouse,IgG (H+L),Goat,Alexa Fluor Plus 647,Fluorophore,Far-Red,650,665,"ICC, IHC, WB",Invitrogen,A32728,Alexa Fluor Plus 647
-sab_010,Rabbit,IgG (H+L),Goat,Alexa Fluor Plus 555,Fluorophore,Red,555,565,"ICC, IHC, WB",Invitrogen,A32732,Alexa Fluor Plus 555
-sab_011,Biotin,Biotin,Streptavidin,Alexa Fluor 488,Fluorophore,Green,490,525,"ICC, IHC, WB",Invitrogen,S32354,Streptavidin AF488 conjugate
+sab_001,Rabbit,IgG (H+L),Donkey,Alexa Fluor 488,Fluorophore,Green,490,525,"ICC, IHC, WB",Generic Bio,DEMO-S01,Broad cross-adsorbed
+sab_002,Mouse,IgG1,Goat,Alexa Fluor Plus 555,Fluorophore,Red,555,565,"ICC, IHC, WB",Generic Bio,DEMO-S02,Isotype specific anti-Mouse IgG1
+sab_003,Mouse,IgG2a,Goat,Alexa Fluor 594,Fluorophore,Red,590,617,"ICC, IHC, WB",Generic Bio,DEMO-S03,Isotype specific anti-Mouse IgG2a
+sab_004,Mouse,IgG2b,Goat,Alexa Fluor 488,Fluorophore,Green,495,519,"ICC, IHC",Generic Bio,DEMO-S04,Isotype specific anti-Mouse IgG2b
+sab_005,Rat,IgG (H+L),Goat,Alexa Fluor Plus 647,Fluorophore,Far-Red,650,665,"ICC, IHC, WB",Generic Bio,DEMO-S05,Highly cross-adsorbed
+sab_006,Chicken,IgY (H+L),Donkey,Alexa Fluor 405,Fluorophore,Blue,401,421,"ICC, IHC",Generic Bio,DEMO-S06,Anti-Chicken IgY
+sab_007,Goat,IgG (H+L),Donkey,Alexa Fluor 680,Fluorophore,Near-IR,679,702,"ICC, IHC, WB",Generic Bio,DEMO-S07,Near-IR detection
+sab_008,Rabbit,IgG (H+L),Donkey,Alexa Fluor 750,Fluorophore,Near-IR,749,775,"ICC, IHC, WB",Generic Bio,DEMO-S08,Far Near-IR
+sab_009,Mouse,IgG (H+L),Goat,Alexa Fluor Plus 647,Fluorophore,Far-Red,650,665,"ICC, IHC, WB",Generic Bio,DEMO-S09,Anti-Mouse polyvalent
+sab_010,Goat,IgG (H+L),Donkey,HRP,HRP,HRP,,,"WB, ICC",Generic Bio,DEMO-S10,Chemiluminescence / enzymatic

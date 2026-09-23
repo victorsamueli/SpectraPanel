@@ -930,6 +930,25 @@ ${message}
             }
         }
 
+        // Update mobile view badge and floating bar
+        const selCount = this.state.selectedReagents.length;
+        const mobileBadge = document.getElementById('mobile-selected-badge');
+        const mobileFloatingBar = document.getElementById('mobile-floating-bar');
+        const mobileFloatingCount = document.getElementById('mobile-floating-count');
+        const mainLayout = document.getElementById('main-layout');
+
+        if (mobileBadge) {
+            mobileBadge.innerText = selCount;
+            mobileBadge.style.display = selCount > 0 ? 'inline-block' : 'none';
+        }
+        if (mobileFloatingCount) {
+            mobileFloatingCount.innerText = selCount;
+        }
+        if (mobileFloatingBar) {
+            const isDbView = !mainLayout || mainLayout.classList.contains('show-database');
+            mobileFloatingBar.style.display = (selCount > 0 && isDbView) ? 'flex' : 'none';
+        }
+
         if (!container) return;
 
         if (this.state.selectedReagents.length === 0) {

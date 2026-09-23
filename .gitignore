@@ -1,19 +1,26 @@
-# Operating System Files
-.DS_Store
-Thumbs.db
-ehthumbs.db
+# Ignore all Excel workbooks by default to protect personal lab data
+*.xlsx
+*.xls
+*.xlsm
+~$*.xlsx
+~$*.xls
 
-# Editor directories and files
-.vscode/
-.idea/
-*.swp
-*.swo
+# Allow only the public dummy/demo database workbook
+!data/SpectraPanel_Demo_Database.xlsx
 
-# Python temporary files
+# Python and virtual environment caches
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
 
-# User feedback logs generated locally
-suggestion_log_*.txt
+# Operating system files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Temporary & test files
+test_*.html
+*.tmp

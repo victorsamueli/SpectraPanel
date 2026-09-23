@@ -46,7 +46,47 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 4. Settings Button & Modal
+    // 4. Mobile View Switcher & Floating Shortcut
+    const mainLayout = document.getElementById('main-layout');
+    const tabMobileDb = document.getElementById('tab-mobile-db');
+    const tabMobileDesigner = document.getElementById('tab-mobile-designer');
+    const mobileFloatingBar = document.getElementById('mobile-floating-bar');
+    const btnMobileGotoDesigner = document.getElementById('btn-mobile-goto-designer');
+
+    function switchMobileView(view) {
+        if (!mainLayout) return;
+        if (view === 'database') {
+            mainLayout.classList.remove('show-designer');
+            mainLayout.classList.add('show-database');
+            if (tabMobileDb) tabMobileDb.classList.add('active');
+            if (tabMobileDesigner) tabMobileDesigner.classList.remove('active');
+            if (mobileFloatingBar) {
+                const selCount = (UI.state.selectedReagents || []).length;
+                mobileFloatingBar.style.display = selCount > 0 ? 'flex' : 'none';
+            }
+        } else if (view === 'designer') {
+            mainLayout.classList.remove('show-database');
+            mainLayout.classList.add('show-designer');
+            if (tabMobileDesigner) tabMobileDesigner.classList.add('active');
+            if (tabMobileDb) tabMobileDb.classList.remove('active');
+            if (mobileFloatingBar) {
+                mobileFloatingBar.style.display = 'none';
+            }
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    if (tabMobileDb) {
+        tabMobileDb.addEventListener('click', () => switchMobileView('database'));
+    }
+    if (tabMobileDesigner) {
+        tabMobileDesigner.addEventListener('click', () => switchMobileView('designer'));
+    }
+    if (btnMobileGotoDesigner) {
+        btnMobileGotoDesigner.addEventListener('click', () => switchMobileView('designer'));
+    }
+
+    // 5. Settings Button & Modal
     const btnSettings = document.getElementById('btn-settings');
     if (btnSettings) {
         btnSettings.addEventListener('click', () => {
