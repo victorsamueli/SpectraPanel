@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Vibrant Cyan to Indigo & Purple Gradient -->
+    <linearGradient id="spBrandGrad" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="55%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#a855f7" />
+    </linearGradient>
+
+    <!-- Deep Tech-Dark Background Tile Gradient -->
+    <linearGradient id="spTileGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1120" />
+      <stop offset="100%" stop-color="#040711" />
+    </linearGradient>
+
+    <!-- Subtle inner glow filter for the outline -->
+    <filter id="tileGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#38bdf8" flood-opacity="0.3" />
+    </filter>
+  </defs>
+
+  <!-- Squircle Base Tile with Neon Gradient Outline -->
+  <rect 
+    x="20" 
+    y="20" 
+    width="472" 
+    height="472" 
+    rx="108" 
+    ry="108" 
+    fill="url(#spTileGrad)" 
+    stroke="url(#spBrandGrad)" 
+    stroke-width="14" 
+  />
+
+  <!-- Emblem: Merged Antibody & Microscope -->
+  <g fill="url(#spBrandGrad)">
+    
+    <!-- === MICROSCOPE OCULAR EYEPIECE (Top Right) === -->
+    <!-- Eyepiece rim -->
+    <path d="M 336 94 L 362 114 C 365 116 365 121 362 124 L 354 133 C 352 136 347 136 344 133 L 318 113 C 315 111 315 106 318 103 L 326 94 C 329 91 334 91 336 94 Z" />
+    <!-- Eyepiece neck coupling -->
+    <path d="M 314 116 L 338 134 L 327 148 L 303 130 Z" />
+
+    <!-- === ANTIBODY ARMS (Y-STRUCTURE) === -->
+
+    <!-- Left Outer Flange (Light Chain / Fab outer tip) -->
+    <rect x="126" y="146" width="28" height="84" rx="14" ry="14" transform="rotate(-38 140 188)" />
+
+    <!-- Left Main Heavy Chain Arm & Left Half of Vertical Stem -->
+    <path d="
+      M 172 120 
+      C 181 113 194 115 201 124 
+      L 242 178 
+      C 246 183 248 190 248 197 
+      L 248 316 
+      C 248 322 243 327 237 327 
+      L 221 327 
+      C 215 327 210 322 210 316 
+      L 210 216 
+      L 160 149 
+      C 153 140 155 127 164 120 
+      Z
+    " />
+
+    <!-- Right Main Heavy Chain Arm / Optical Barrel & Right Half of Vertical Stem -->
+    <path d="
+      M 340 120 
+      C 349 127 351 140 344 149 
+      L 294 216 
+      L 294 316 
+      C 294 322 289 327 283 327 
+      L 267 327 
+      C 261 327 256 322 256 316 
+      L 256 197 
+      C 256 190 258 183 262 178 
+      L 303 124 
+      C 310 115 323 113 332 120 
+      Z
+    " />
+
+    <!-- Right Outer Flange (Light Chain / Barrel Ridge) -->
+    <rect x="358" y="146" width="28" height="84" rx="14" ry="14" transform="rotate(38 372 188)" />
+
+    <!-- === MICROSCOPE LOWER BODY === -->
+
+    <!-- Objective Nosepiece / Illuminator Hub -->
+    <path d="M 234 332 L 270 332 C 274 332 277 335 277 339 L 277 348 L 227 348 L 227 339 C 227 335 230 332 234 332 Z" />
+
+    <!-- Specimen Stage (Horizontal rounded platform) -->
+    <rect x="180" y="352" width="144" height="18" rx="9" ry="9" />
+
+    <!-- Substage Condenser Bracket -->
+    <rect x="224" y="374" width="38" height="14" rx="7" ry="7" />
+
+    <!-- Curved C-Arm (Microscope Limb connecting upper frame to foot) -->
+    <path d="
+      M 288 280 
+      C 330 292 352 324 352 364 
+      C 352 402 328 428 286 434 
+      L 286 408 
+      C 314 402 326 384 326 364 
+      C 326 338 312 316 288 304 
+      Z
+    " />
+
+    <!-- Coarse & Fine Focus Adjustment Knob -->
+    <circle cx="320" cy="380" r="19" />
+    <circle cx="320" cy="380" r="8" fill="#060a14" />
+
+    <!-- Microscope Base Footing -->
+    <path d="
+      M 188 424 
+      L 336 424 
+      C 344 424 350 429 352 436 
+      L 354 445 
+      C 355 451 350 456 344 456 
+      L 180 456 
+      C 174 456 169 451 170 445 
+      L 172 436 
+      C 174 429 180 424 188 424 
+      Z
+    " />
+
+  </g>
+</svg>
