@@ -325,99 +325,170 @@ const DataLoader = {
 
         // 1. Instructions Sheet
         const instructionsData = [
-            ["SpectraPanel v1.0 — Streamlined Database Template"],
+            ["SpectraPanel v1.0 — Laboratory Inventory Database Template"],
             [""],
             ["Instructions:"],
-            ["1. This template is stripped down to strictly what is required for multiplex panel design."],
-            ["2. Keep the column headers in row 1 unchanged."],
-            ["3. Enter your lab's inventory across the respective sheets (Primaries, Secondaries, Direct_Dyes, Reporters)."],
-            ["4. Detection channels & colors for Secondaries and Reporters are computed dynamically from emission peaks matching your configured microscopy channels (no static color column required)."],
-            ["5. Under Reporters, enter target (protein name) and reporter (fluorophore tag)."],
-            ["6. Save this workbook and click 'Upload Database' in SpectraPanel to load everything in one click."],
+            ["1. Keep the column headers in row 1 unchanged across all sheets."],
+            ["2. Enter your laboratory's antibody and reagent inventory into the respective sheets (Primaries, Secondaries, Direct_Dyes, Reporters)."],
+            ["3. Detection channels & colors for Secondaries and Reporters are computed dynamically from emission peaks matching your configured microscopy channels."],
+            ["4. Under Reporters, enter target (protein name) and reporter (fluorophore tag)."],
+            ["5. Save this workbook and click 'Upload Database' in SpectraPanel to load everything in one click."],
             [""],
-            ["Accepted Values & Conventions:"],
-            ["• applications: Comma-separated (e.g., 'ICC, IHC, WB' or 'ICC, IHC')"],
-            ["• live_cell_compatible: 'Yes' or 'No'"],
-            ["• conjugate_type: 'Fluorophore' or 'HRP'"],
-            ["• conjugated_color: Leave blank if unconjugated; enter fluorophore color if directly conjugated."],
-            ["• fixation_compatible: 'PFA', 'Methanol', or 'PFA, Methanol'"]
+            ["Sheet Column Reference & Conventions:"],
+            ["• Primaries Sheet:"],
+            ["    - target: Target protein or marker (e.g., 'Pax7', 'Ki67')"],
+            ["    - clonality: 'Monoclonal', 'Polyclonal', or 'Recombinant Monoclonal'"],
+            ["    - clone: Clone name or ID (e.g., 'DM1A', '5.8A', 'PAX7/497')"],
+            ["    - host: Primary host species (e.g., 'Mouse', 'Rabbit')"],
+            ["    - isotype: Primary isotype (e.g., 'IgG1', 'IgG2a', 'IgG2b', 'IgG', 'IgM')"],
+            ["    - make: Manufacturer / Supplier (e.g., 'Invitrogen', 'Sigma-Aldrich', 'DSHB', 'CST')"],
+            ["    - catalog: Product catalog number"],
+            ["    - applications: Comma-separated validated applications (e.g., 'ICC, IHC, WB')"],
+            ["    - conjugated_color: Leave blank for unconjugated; enter fluorophore color if directly conjugated."],
+            ["    - fixation_compatible: 'PFA', 'Methanol', or 'PFA, Methanol'"],
+            ["    - live_cell_compatible: 'Yes' or 'No'"],
+            ["    - comments: Lab notes, storage box, aliquot notes, etc."],
+            [""],
+            ["• Secondaries Sheet:"],
+            ["    - anti_host: Target species recognized by the secondary (e.g., 'Mouse', 'Rabbit', 'Chicken')"],
+            ["    - anti_isotype: Specific isotype recognized (e.g., 'IgG (H+L)', 'IgM', 'IgG1')"],
+            ["    - host: Host animal species that produced the secondary antibody (e.g., 'Goat', 'Donkey')"],
+            ["    - conjugate: Fluorophore or enzyme name (e.g., 'Alexa Fluor 488', 'Alexa Fluor Plus 647', 'HRP')"],
+            ["    - conjugate_type: 'Fluorophore' or 'HRP'"],
+            ["    - excitation_nm: Peak excitation wavelength in nm (e.g., 490, 650)"],
+            ["    - emission_nm: Peak emission wavelength in nm (e.g., 525, 665)"],
+            ["    - applications: 'ICC, IHC, WB'"],
+            ["    - make: Manufacturer / Supplier (e.g., 'Invitrogen')"],
+            ["    - catalogue: Secondary antibody catalog number"],
+            ["    - comments: Box location, receipt date, or lot notes"],
+            [""],
+            ["• Direct Dyes Sheet:"],
+            ["    - name, target_structure, color, excitation_nm, emission_nm, live_cell_compatible, make, catalogue"],
+            [""],
+            ["• Reporters Sheet:"],
+            ["    - target, reporter, excitation_nm, emission_nm, recommended_fixation"]
         ];
         const wsInstructions = XLSX.utils.aoa_to_sheet(instructionsData);
 
-        // 2. Primaries Sheet (7 essential columns)
+        // 2. Primaries Sheet
         const primariesData = [
             {
                 target: "Ki67",
+                clonality: "Monoclonal",
+                clone: "SP6",
                 host: "Rabbit",
                 isotype: "IgG",
+                make: "Abcam",
+                catalog: "ab16667",
                 applications: "ICC, IHC, WB",
                 conjugated_color: "",
                 fixation_compatible: "PFA, Methanol",
-                live_cell_compatible: "No"
+                live_cell_compatible: "No",
+                comments: ""
             },
             {
-                target: "Vimentin",
+                target: "Pax7",
+                clonality: "Monoclonal",
+                clone: "PAX7/497",
                 host: "Mouse",
                 isotype: "IgG1",
+                make: "NeoBiotechnologies",
+                catalog: "5081-MSM1-P0",
                 applications: "ICC, IHC, WB",
                 conjugated_color: "",
                 fixation_compatible: "PFA, Methanol",
-                live_cell_compatible: "No"
+                live_cell_compatible: "No",
+                comments: ""
+            },
+            {
+                target: "alpha-Tubulin",
+                clonality: "Monoclonal",
+                clone: "DM1A",
+                host: "Mouse",
+                isotype: "IgG1",
+                make: "Sigma-Aldrich",
+                catalog: "T9026",
+                applications: "ICC, IHC, WB",
+                conjugated_color: "",
+                fixation_compatible: "PFA, Methanol",
+                live_cell_compatible: "No",
+                comments: ""
             },
             {
                 target: "beta-Actin",
+                clonality: "Monoclonal",
+                clone: "AC-15",
                 host: "Mouse",
                 isotype: "IgG1",
+                make: "Sigma-Aldrich",
+                catalog: "A9224",
                 applications: "ICC, IHC, WB",
                 conjugated_color: "Green",
                 fixation_compatible: "PFA",
-                live_cell_compatible: "No"
+                live_cell_compatible: "No",
+                comments: "Directly conjugated FITC"
             }
         ];
         const wsPrimaries = XLSX.utils.json_to_sheet(primariesData);
 
-        // 3. Secondaries Sheet (7 essential columns, no static color)
+        // 3. Secondaries Sheet
         const secondariesData = [
             {
                 anti_host: "Rabbit",
                 anti_isotype: "IgG (H+L)",
+                host: "Donkey",
                 conjugate: "Alexa Fluor 488",
                 conjugate_type: "Fluorophore",
                 excitation_nm: "490",
                 emission_nm: "525",
-                applications: "ICC, IHC, WB"
+                applications: "ICC, IHC, WB",
+                make: "Invitrogen",
+                catalogue: "A21206",
+                comments: "Received Jan 2020"
             },
             {
                 anti_host: "Mouse",
                 anti_isotype: "IgG (H+L)",
-                conjugate: "Alexa Fluor 555",
+                host: "Goat",
+                conjugate: "Alexa Fluor Plus 647",
                 conjugate_type: "Fluorophore",
-                excitation_nm: "555",
-                emission_nm: "565",
-                applications: "ICC, IHC, WB"
-            },
-            {
-                anti_host: "Mouse",
-                anti_isotype: "IgG1",
-                conjugate: "Alexa Fluor 594",
-                conjugate_type: "Fluorophore",
-                excitation_nm: "590",
-                emission_nm: "617",
-                applications: "ICC, IHC, WB"
+                excitation_nm: "650",
+                emission_nm: "665",
+                applications: "ICC, IHC, WB",
+                make: "Invitrogen",
+                catalogue: "A32728",
+                comments: ""
             },
             {
                 anti_host: "Rabbit",
                 anti_isotype: "IgG (H+L)",
+                host: "Goat",
+                conjugate: "Alexa Fluor Plus 555",
+                conjugate_type: "Fluorophore",
+                excitation_nm: "555",
+                emission_nm: "565",
+                applications: "ICC, IHC, WB",
+                make: "Invitrogen",
+                catalogue: "A32732",
+                comments: ""
+            },
+            {
+                anti_host: "Goat",
+                anti_isotype: "IgG (H+L)",
+                host: "Donkey",
                 conjugate: "HRP",
                 conjugate_type: "HRP",
                 excitation_nm: "",
                 emission_nm: "",
-                applications: "WB"
+                applications: "WB",
+                make: "Invitrogen",
+                catalogue: "A15999",
+                comments: ""
             }
         ];
         const wsSecondaries = XLSX.utils.json_to_sheet(secondariesData);
 
-        // 4. Direct Dyes Sheet (6 essential columns)
+        // 4. Direct Dyes Sheet
         const dyesData = [
             {
                 name: "DAPI",
@@ -425,7 +496,9 @@ const DataLoader = {
                 color: "Blue",
                 excitation_nm: "360",
                 emission_nm: "460",
-                live_cell_compatible: "Yes"
+                live_cell_compatible: "Yes",
+                make: "Invitrogen",
+                catalogue: "D1306"
             },
             {
                 name: "Phalloidin-AF488",
@@ -433,12 +506,24 @@ const DataLoader = {
                 color: "Green",
                 excitation_nm: "495",
                 emission_nm: "518",
-                live_cell_compatible: "No"
+                live_cell_compatible: "No",
+                make: "Invitrogen",
+                catalogue: "A12379"
+            },
+            {
+                name: "SiR-Actin",
+                target_structure: "F-Actin",
+                color: "Far-Red",
+                excitation_nm: "652",
+                emission_nm: "674",
+                live_cell_compatible: "Yes",
+                make: "Spirochrome",
+                catalogue: "CY-SC001"
             }
         ];
         const wsDyes = XLSX.utils.json_to_sheet(dyesData);
 
-        // 5. Reporters Sheet (5 essential columns: target=protein, reporter=fluorophore)
+        // 5. Reporters Sheet
         const reportersData = [
             {
                 target: "Tubulin",

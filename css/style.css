@@ -132,7 +132,7 @@ html, body {
 }
 
 /* Independent Scrolling Columns */
-.col-left, .col-right {
+.col-left {
     height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
@@ -142,9 +142,36 @@ html, body {
     gap: 1rem;
 }
 
+.col-right {
+    height: 100%;
+    overflow: hidden;
+    padding-right: 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.col-right .panel-options-card,
+.col-right .selected-targets-card,
+.col-right #results-action-bar {
+    flex-shrink: 0;
+}
+
+/* Independent Scroll Area for Combination Cards Only */
+#results-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
 /* Slim Custom Scrollbars */
 .col-left::-webkit-scrollbar,
-.col-right::-webkit-scrollbar,
+#results-container::-webkit-scrollbar,
 .table-container::-webkit-scrollbar,
 .selected-tags-box::-webkit-scrollbar {
     width: 6px;
@@ -152,7 +179,7 @@ html, body {
 }
 
 .col-left::-webkit-scrollbar-track,
-.col-right::-webkit-scrollbar-track,
+#results-container::-webkit-scrollbar-track,
 .table-container::-webkit-scrollbar-track,
 .selected-tags-box::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.15);
@@ -160,7 +187,7 @@ html, body {
 }
 
 .col-left::-webkit-scrollbar-thumb,
-.col-right::-webkit-scrollbar-thumb,
+#results-container::-webkit-scrollbar-thumb,
 .table-container::-webkit-scrollbar-thumb,
 .selected-tags-box::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.15);
@@ -168,7 +195,9 @@ html, body {
 }
 
 .col-left::-webkit-scrollbar-thumb:hover,
-.col-right::-webkit-scrollbar-thumb:hover {
+#results-container::-webkit-scrollbar-thumb:hover,
+.table-container::-webkit-scrollbar-thumb:hover,
+.selected-tags-box::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.25);
 }
 
@@ -650,7 +679,7 @@ html, body {
     border: 1px solid var(--panel-border);
     border-radius: var(--radius-md);
     padding: 0.75rem 1rem;
-    margin-bottom: 0.75rem;
+    flex-shrink: 0;
     transition: border-color 0.2s;
 }
 
@@ -1151,6 +1180,7 @@ textarea.form-input {
     padding: 2rem 1rem;
     text-align: center;
     color: var(--text-muted);
+    flex-shrink: 0;
 }
 
 .empty-state i {

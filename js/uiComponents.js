@@ -115,11 +115,11 @@ const UI = {
 
     getDefaultColumns(tab) {
         if (tab === 'primaries') {
-            return ['target', 'host', 'isotype', 'applications', 'conjugated_color', 'fixation_compatible', 'live_cell_compatible'];
+            return ['target', 'clonality', 'clone', 'host', 'isotype', 'make', 'catalog', 'applications', 'conjugated_color', 'fixation_compatible', 'live_cell_compatible', 'comments'];
         } else if (tab === 'secondaries') {
-            return ['anti_host', 'anti_isotype', 'conjugate', 'channel', 'excitation_nm', 'emission_nm', 'applications'];
+            return ['anti_host', 'anti_isotype', 'host', 'conjugate', 'channel', 'excitation_nm', 'emission_nm', 'applications', 'make', 'catalogue', 'comments'];
         } else if (tab === 'dyes') {
-            return ['name', 'target_structure', 'color', 'excitation_nm', 'emission_nm', 'live_cell_compatible'];
+            return ['name', 'target_structure', 'color', 'excitation_nm', 'emission_nm', 'live_cell_compatible', 'make', 'catalogue'];
         } else if (tab === 'reporters') {
             return ['target', 'reporter', 'channel', 'excitation_nm', 'emission_nm', 'recommended_fixation'];
         }
@@ -1413,22 +1413,31 @@ ${message}
         if (type === 'primaries') {
             fields = [
                 { id: 'target', label: 'Target Name (e.g. Ki67)', type: 'text' },
+                { id: 'clonality', label: 'Clonality (Monoclonal, Polyclonal)', type: 'text' },
+                { id: 'clone', label: 'Clone (e.g. DM1A, 5.8A)', type: 'text' },
                 { id: 'host', label: 'Host Species (Rabbit, Mouse)', type: 'text' },
-                { id: 'isotype', label: 'Isotype (IgG, IgG1)', type: 'text' },
+                { id: 'isotype', label: 'Isotype (IgG, IgG1, IgG2a)', type: 'text' },
+                { id: 'make', label: 'Make / Supplier (e.g. Invitrogen)', type: 'text' },
+                { id: 'catalog', label: 'Catalog #', type: 'text' },
                 { id: 'applications', label: 'Validated Apps (ICC, IHC, WB)', type: 'text' },
                 { id: 'conjugated_color', label: 'Conjugated Color (if direct, else blank)', type: 'text' },
                 { id: 'fixation_compatible', label: 'Fixation Compatible (PFA, Methanol)', type: 'text' },
-                { id: 'live_cell_compatible', label: 'Live-Cell Compatible (Yes/No)', type: 'text' }
+                { id: 'live_cell_compatible', label: 'Live-Cell Compatible (Yes/No)', type: 'text' },
+                { id: 'comments', label: 'Comments / Notes', type: 'text' }
             ];
         } else if (type === 'secondaries') {
             fields = [
                 { id: 'anti_host', label: 'Anti-Host Species (Rabbit, Mouse)', type: 'text' },
                 { id: 'anti_isotype', label: 'Anti-Isotype (IgG (H+L))', type: 'text' },
+                { id: 'host', label: 'Host Species (Goat, Donkey)', type: 'text' },
                 { id: 'conjugate', label: 'Conjugate (Alexa Fluor 488, HRP)', type: 'text' },
                 { id: 'conjugate_type', label: 'Conjugate Type (Fluorophore/HRP)', type: 'text' },
                 { id: 'excitation_nm', label: 'Excitation Peak (nm)', type: 'number' },
                 { id: 'emission_nm', label: 'Emission Peak (nm)', type: 'number' },
-                { id: 'applications', label: 'Applications (ICC, IHC, WB)', type: 'text' }
+                { id: 'applications', label: 'Applications (ICC, IHC, WB)', type: 'text' },
+                { id: 'make', label: 'Make / Supplier (e.g. Invitrogen)', type: 'text' },
+                { id: 'catalogue', label: 'Catalogue #', type: 'text' },
+                { id: 'comments', label: 'Comments / Notes', type: 'text' }
             ];
         } else if (type === 'dyes') {
             fields = [
@@ -1437,7 +1446,9 @@ ${message}
                 { id: 'color', label: 'Color (Blue, Green, Red)', type: 'text' },
                 { id: 'excitation_nm', label: 'Excitation (nm)', type: 'number' },
                 { id: 'emission_nm', label: 'Emission (nm)', type: 'number' },
-                { id: 'live_cell_compatible', label: 'Live-Cell Compatible (Yes/No)', type: 'text' }
+                { id: 'live_cell_compatible', label: 'Live-Cell Compatible (Yes/No)', type: 'text' },
+                { id: 'make', label: 'Make / Supplier (e.g. Invitrogen)', type: 'text' },
+                { id: 'catalogue', label: 'Catalogue #', type: 'text' }
             ];
         } else if (type === 'reporters') {
             fields = [

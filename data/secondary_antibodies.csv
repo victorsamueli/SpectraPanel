@@ -1,12 +1,12 @@
-id,anti_host,anti_isotype,conjugate,conjugate_type,excitation_nm,emission_nm,applications,catalog_no,supplier,notes
-sab_001,Goat,IgG (H+L),"HRP (Donkey, Invitrogen A15999)",HRP,,,WB,A15999,Invitrogen,Donkey anti-Goat HRP
-sab_002,Mouse,IgM,"Alexa Fluor 488 (Goat, Invitrogen A21042)",Fluorophore,490,525,"ICC, IHC, WB",A21042,Invitrogen,Goat anti-Mouse IgM (µ chain)
-sab_003,Rabbit,IgG (H+L),"Alexa Fluor 488 (Donkey, Invitrogen A21206)",Fluorophore,490,525,"ICC, IHC, WB",A21206,Invitrogen,Donkey anti-Rabbit IgG (H+L)
-sab_004,Chicken,IgY (H+L),"Alexa Fluor 633 (Goat, Invitrogen A21103)",Fluorophore,632,647,"ICC, IHC, WB",A21103,Invitrogen,"Goat anti-Chicken IgY (H+L), Common 4 deg box"
-sab_005,Rabbit,IgG (H+L),"Alexa Fluor 647 (Goat, Invitrogen A21245)",Fluorophore,650,665,"ICC, IHC, WB",A21245,Invitrogen,Goat anti-Rabbit IgG (H+L)
-sab_006,Mouse,IgG (H+L),"Alexa Fluor 647 (Goat, Invitrogen A21235)",Fluorophore,650,665,"ICC, IHC, WB",A21235,Invitrogen,Goat anti-Mouse IgG (H+L)
-sab_007,Mouse,IgG (H+L),"Alexa Fluor 488 (Goat, Invitrogen A11001)",Fluorophore,490,525,"ICC, IHC, WB",A11001,Invitrogen,Goat anti-Mouse IgG (H+L)
-sab_008,Rabbit,IgG (H+L),"Alexa Fluor Plus 647 (Goat, Invitrogen A32733)",Fluorophore,650,665,"ICC, IHC, WB",A32733,Invitrogen,Goat anti-Rabbit IgG (H+L) Plus 647
-sab_009,Mouse,IgG (H+L),"Alexa Fluor Plus 647 (Goat, Invitrogen A32728)",Fluorophore,650,665,"ICC, IHC, WB",A32728,Invitrogen,Goat anti-Mouse IgG (H+L) Plus 647
-sab_010,Rabbit,IgG (H+L),"Alexa Fluor Plus 555 (Goat, Invitrogen A32732)",Fluorophore,555,565,"ICC, IHC, WB",A32732,Invitrogen,Goat anti-Rabbit IgG (H+L) Plus 555
-sab_011,Biotin,Biotin,"Alexa Fluor 488 (Streptavidin, Invitrogen S32354)",Fluorophore,490,525,"ICC, IHC, WB",S32354,Invitrogen,Streptavidin AF488 conjugate
+id,anti_host,anti_isotype,host,conjugate,conjugate_type,color,excitation_nm,emission_nm,applications,make,catalogue,comments
+sab_001,Goat,IgG (H+L),Donkey,HRP,HRP,,,,WB,Invitrogen,A15999,Donkey anti-Goat HRP
+sab_002,Mouse,IgM,Goat,Alexa Fluor 488,Fluorophore,Green,490,525,"ICC, IHC, WB",Invitrogen,A21042,Goat anti-Mouse IgM (µ chain)
+sab_003,Rabbit,IgG (H+L),Donkey,Alexa Fluor 488,Fluorophore,Green,490,525,"ICC, IHC, WB",Invitrogen,A21206,Received Jan 2020
+sab_004,Chicken,IgY (H+L),Goat,Alexa Fluor 633,Fluorophore,Far-Red,632,647,"ICC, IHC, WB",Invitrogen,A21103,Common 4 deg box
+sab_005,Rabbit,IgG (H+L),Goat,Alexa Fluor 647,Fluorophore,Far-Red,650,665,"ICC, IHC, WB",Invitrogen,A21245,Goat anti-Rabbit IgG (H+L)
+sab_006,Mouse,IgG (H+L),Goat,Alexa Fluor 647,Fluorophore,Far-Red,650,665,"ICC, IHC, WB",Invitrogen,A21235,Goat anti-Mouse IgG (H+L)
+sab_007,Mouse,IgG (H+L),Goat,Alexa Fluor 488,Fluorophore,Green,490,525,"ICC, IHC, WB",Invitrogen,A11001,Goat anti-Mouse IgG (H+L)
+sab_008,Rabbit,IgG (H+L),Goat,Alexa Fluor Plus 647,Fluorophore,Far-Red,650,665,"ICC, IHC, WB",Invitrogen,A32733,Alexa Fluor Plus 647
+sab_009,Mouse,IgG (H+L),Goat,Alexa Fluor Plus 647,Fluorophore,Far-Red,650,665,"ICC, IHC, WB",Invitrogen,A32728,Alexa Fluor Plus 647
+sab_010,Rabbit,IgG (H+L),Goat,Alexa Fluor Plus 555,Fluorophore,Red,555,565,"ICC, IHC, WB",Invitrogen,A32732,Alexa Fluor Plus 555
+sab_011,Biotin,Biotin,Streptavidin,Alexa Fluor 488,Fluorophore,Green,490,525,"ICC, IHC, WB",Invitrogen,S32354,Streptavidin AF488 conjugate

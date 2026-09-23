@@ -24,100 +24,259 @@ cell_border = Border(left=border_side, right=border_side, top=border_side, botto
 
 # 1. Instructions
 instructions_content = [
-    ["SpectraPanel v1.0 — Streamlined Database Template"],
+    ["SpectraPanel v1.0 — Laboratory Inventory Database Template"],
     [""],
     ["Instructions:"],
-    ["1. This template is stripped down to strictly what is required for multiplex panel design."],
-    ["2. Keep the column headers in row 1 unchanged."],
-    ["3. Enter your lab's inventory across the respective sheets (Primaries, Secondaries, Direct_Dyes, Reporters)."],
-    ["4. Save this workbook and click 'Upload Database' in SpectraPanel to load everything in one click."],
+    ["1. Keep the column headers in row 1 unchanged across all sheets."],
+    ["2. Enter your laboratory's antibody and reagent inventory into the respective sheets."],
+    ["3. Detection channels for Secondaries and Reporters are computed dynamically in SpectraPanel based on emission wavelengths."],
+    ["4. Save this workbook and click 'Upload Database' in SpectraPanel to import all sheets at once."],
     [""],
-    ["Accepted Values & Conventions:"],
-    ["• applications: Comma-separated (e.g., 'ICC, IHC, WB' or 'ICC, IHC')"],
-    ["• live_cell_compatible: 'Yes' or 'No'"],
-    ["• color: 'Blue', 'Green', 'Orange', 'Red', 'Far-Red', 'Near-IR'"],
-    ["• conjugate_type: 'Fluorophore' or 'HRP'"],
-    ["• conjugated_color: Leave blank if unconjugated; enter fluorophore color if directly conjugated."],
-    ["• fixation_compatible: 'PFA', 'Methanol', or 'PFA, Methanol'"]
+    ["Sheet Column Reference & Conventions:"],
+    ["• Primaries Sheet:"],
+    ["    - target: Target protein or marker (e.g., 'Pax7', 'alpha-Tubulin')"],
+    ["    - clonality: 'Monoclonal', 'Polyclonal', or 'Recombinant Monoclonal'"],
+    ["    - clone: Clone name or ID (e.g., 'DM1A', '5.8A', 'PAX7/497')"],
+    ["    - host: Primary host species (e.g., 'Mouse', 'Rabbit')"],
+    ["    - isotype: Primary isotype (e.g., 'IgG1', 'IgG2a', 'IgG2b', 'IgG', 'IgM')"],
+    ["    - make: Manufacturer / Supplier (e.g., 'Invitrogen', 'Sigma-Aldrich', 'DSHB', 'CST')"],
+    ["    - catalog: Product catalog number"],
+    ["    - applications: Comma-separated validated applications (e.g., 'ICC, IHC, WB')"],
+    ["    - conjugated_color: Leave blank for unconjugated; enter fluorophore color if directly conjugated."],
+    ["    - fixation_compatible: 'PFA', 'Methanol', or 'PFA, Methanol'"],
+    ["    - live_cell_compatible: 'Yes' or 'No'"],
+    ["    - comments: Lab notes, storage box, aliquot notes, etc."],
+    [""],
+    ["• Secondaries Sheet:"],
+    ["    - anti_host: Target species recognized by the secondary (e.g., 'Mouse', 'Rabbit', 'Chicken')"],
+    ["    - anti_isotype: Specific isotype recognized (e.g., 'IgG (H+L)', 'IgM', 'IgG1')"],
+    ["    - host: Host animal species that produced the secondary antibody (e.g., 'Goat', 'Donkey')"],
+    ["    - conjugate: Fluorophore or enzyme name (e.g., 'Alexa Fluor 488', 'Alexa Fluor Plus 647', 'HRP')"],
+    ["    - conjugate_type: 'Fluorophore' or 'HRP'"],
+    ["    - color: Optical color group ('Green', 'Red', 'Far-Red')"],
+    ["    - excitation_nm: Peak excitation wavelength in nm (e.g., 490, 650)"],
+    ["    - emission_nm: Peak emission wavelength in nm (e.g., 525, 665)"],
+    ["    - applications: 'ICC, IHC, WB'"],
+    ["    - make: Manufacturer / Supplier (e.g., 'Invitrogen')"],
+    ["    - catalogue: Secondary antibody catalog number"],
+    ["    - comments: Box location, receipt date, or lot notes"],
+    [""],
+    ["• Direct Dyes Sheet:"],
+    ["    - name, target_structure, color, excitation_nm, emission_nm, live_cell_compatible, make, catalogue"],
+    [""],
+    ["• Reporters Sheet:"],
+    ["    - reporter_name, color, excitation_nm, emission_nm, recommended_fixation"]
 ]
+
 for r_idx, row in enumerate(instructions_content, 1):
     for c_idx, val in enumerate(row, 1):
         cell = ws_inst.cell(row=r_idx, column=c_idx, value=val)
         if r_idx == 1:
             cell.font = Font(name='Segoe UI', size=14, bold=True, color='0F172A')
-        elif r_idx in [3, 9]:
+        elif r_idx in [3, 9, 10, 23, 37, 40]:
             cell.font = Font(name='Segoe UI', size=11, bold=True, color='334155')
         else:
             cell.font = Font(name='Segoe UI', size=10, color='475569')
 
 # 2. Primaries (32 antibodies extracted from PDF datasheets)
-prim_headers = ['target', 'host', 'isotype', 'applications', 'conjugated_color', 'fixation_compatible', 'live_cell_compatible']
+prim_headers = [
+    'target', 'clonality', 'clone', 'host', 'isotype', 'make', 'catalog',
+    'applications', 'conjugated_color', 'fixation_compatible', 'live_cell_compatible', 'comments'
+]
 
 primaries_data = [
     # 1. 5081-MSM1-P0.pdf
-    {'target': 'Pax7', 'host': 'Mouse', 'isotype': 'IgG1', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'Pax7', 'clonality': 'Monoclonal', 'clone': 'PAX7/497', 'host': 'Mouse', 'isotype': 'IgG1',
+        'make': 'NeoBiotechnologies', 'catalog': '5081-MSM1-P0', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': ''
+    },
     # 2. 554130.pdf
-    {'target': 'MyoD', 'host': 'Mouse', 'isotype': 'IgG1', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA', 'live_cell_compatible': 'No'},
+    {
+        'target': 'MyoD', 'clonality': 'Monoclonal', 'clone': '5.8A', 'host': 'Mouse', 'isotype': 'IgG1',
+        'make': 'BD Pharmingen', 'catalog': '554130', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA', 'live_cell_compatible': 'No', 'comments': ''
+    },
     # 3. Antibody-MYOD.pdf
-    {'target': 'MyoD', 'host': 'Rabbit', 'isotype': 'IgG', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA', 'live_cell_compatible': 'No'},
+    {
+        'target': 'MyoD', 'clonality': 'Recombinant Monoclonal', 'clone': 'HL1372', 'host': 'Rabbit', 'isotype': 'IgG',
+        'make': 'Invitrogen', 'catalog': 'MA5-47019', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA', 'live_cell_compatible': 'No', 'comments': 'Recombinant rabbit monoclonal'
+    },
     # 4. Antibody-alpha Actinin 2.pdf
-    {'target': 'alpha-Actinin 2', 'host': 'Rabbit', 'isotype': 'IgG', 'applications': 'ICC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'alpha-Actinin 2', 'clonality': 'Recombinant Monoclonal', 'clone': '7H1L69', 'host': 'Rabbit', 'isotype': 'IgG',
+        'make': 'Invitrogen', 'catalog': '701914', 'applications': 'ICC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': 'Recombinant rabbit monoclonal'
+    },
     # 5. DSHB-9D10.pdf
-    {'target': 'Titin', 'host': 'Mouse', 'isotype': 'IgM', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'Titin', 'clonality': 'Monoclonal', 'clone': '9D10', 'host': 'Mouse', 'isotype': 'IgM',
+        'make': 'DSHB', 'catalog': '9D10', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': 'Hybridoma bank clone'
+    },
     # 6. DSHB-CAPZA1.pdf
-    {'target': 'CAPZA1', 'host': 'Mouse', 'isotype': 'IgG2a', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'CAPZA1', 'clonality': 'Monoclonal', 'clone': 'mAb 5B12.3', 'host': 'Mouse', 'isotype': 'IgG2a',
+        'make': 'DSHB', 'catalog': 'mAb 5B12.3', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'Methanol', 'live_cell_compatible': 'No', 'comments': 'Hybridoma bank clone'
+    },
     # 7. DSHB-CAPZB.pdf
-    {'target': 'CAPZB', 'host': 'Mouse', 'isotype': 'IgG2a', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'CAPZB', 'clonality': 'Monoclonal', 'clone': 'mAb 3F2.3', 'host': 'Mouse', 'isotype': 'IgG2a',
+        'make': 'DSHB', 'catalog': 'mAb 3F2.3', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'Methanol', 'live_cell_compatible': 'No', 'comments': 'Hybridoma bank clone'
+    },
     # 8. DSHB-JLT12.pdf
-    {'target': 'Troponin T', 'host': 'Mouse', 'isotype': 'IgG1', 'applications': 'ICC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA', 'live_cell_compatible': 'No'},
+    {
+        'target': 'Troponin T', 'clonality': 'Monoclonal', 'clone': 'JLT12', 'host': 'Mouse', 'isotype': 'IgG1',
+        'make': 'DSHB', 'catalog': 'JLT12', 'applications': 'ICC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA', 'live_cell_compatible': 'No', 'comments': 'Hybridoma bank clone'
+    },
     # 9. DSHB-MF20.pdf
-    {'target': 'Myosin Heavy Chain', 'host': 'Mouse', 'isotype': 'IgG2b', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'Myosin Heavy Chain', 'clonality': 'Monoclonal', 'clone': 'MF 20', 'host': 'Mouse', 'isotype': 'IgG2b',
+        'make': 'DSHB', 'catalog': 'MF 20', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': 'Pan-sarcomeric MHC'
+    },
     # 10. DSHB-PAX7.pdf
-    {'target': 'Pax7', 'host': 'Mouse', 'isotype': 'IgG1', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'Pax7', 'clonality': 'Monoclonal', 'clone': 'PAX7', 'host': 'Mouse', 'isotype': 'IgG1',
+        'make': 'DSHB', 'catalog': 'PAX7', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': 'Hybridoma bank clone'
+    },
     # 11. DSHB-TI4.pdf
-    {'target': 'Troponin I', 'host': 'Mouse', 'isotype': 'IgG1', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'Troponin I', 'clonality': 'Monoclonal', 'clone': 'TI-4', 'host': 'Mouse', 'isotype': 'IgG1',
+        'make': 'DSHB', 'catalog': 'TI-4', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': 'Cardiac & skeletal Troponin I'
+    },
     # 12. DSHB-mMaC.pdf
-    {'target': 'Myomesin', 'host': 'Mouse', 'isotype': 'IgG1', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'Myomesin', 'clonality': 'Monoclonal', 'clone': 'mMaC myomesin B4', 'host': 'Mouse', 'isotype': 'IgG1',
+        'make': 'DSHB', 'catalog': 'mMaC myomesin B4', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': 'M-band marker'
+    },
     # 13. GAPDH (GA1R)_mice mIgG1_Invitrogen_Datasheet.pdf
-    {'target': 'GAPDH', 'host': 'Mouse', 'isotype': 'IgG1', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'GAPDH', 'clonality': 'Monoclonal', 'clone': 'GA1R', 'host': 'Mouse', 'isotype': 'IgG1',
+        'make': 'Invitrogen', 'catalog': 'MA5-15738', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': ''
+    },
     # 14. LMOD3_Rabbit-pAb_ProteinTech_14948-1-AP.pdf
-    {'target': 'LMOD3', 'host': 'Rabbit', 'isotype': 'IgG', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'LMOD3', 'clonality': 'Polyclonal', 'clone': 'Polyclonal', 'host': 'Rabbit', 'isotype': 'IgG',
+        'make': 'Proteintech', 'catalog': '14948-1-AP', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': ''
+    },
     # 15. Lamin AC mice mAB (SantaCruz)_DataSheet.pdf
-    {'target': 'Lamin A/C', 'host': 'Mouse', 'isotype': 'IgG2b', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'Lamin A/C', 'clonality': 'Monoclonal', 'clone': '636', 'host': 'Mouse', 'isotype': 'IgG2b',
+        'make': 'Santa Cruz', 'catalog': 'sc-7292', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': 'Nuclear envelope marker'
+    },
     # 16. Nexilin mice mAB (Sigma)_DataSheet.pdf
-    {'target': 'Nexilin', 'host': 'Mouse', 'isotype': 'IgG2a', 'applications': 'ICC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'Nexilin', 'clonality': 'Monoclonal', 'clone': 'NX-38', 'host': 'Mouse', 'isotype': 'IgG2a',
+        'make': 'Sigma-Aldrich', 'catalog': 'SAB4200124', 'applications': 'ICC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': ''
+    },
     # 17. Pan-Actin (D18C11) Rabbit mAB (CST)_DataSheet.pdf
-    {'target': 'Pan-Actin', 'host': 'Rabbit', 'isotype': 'IgG', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA', 'live_cell_compatible': 'No'},
+    {
+        'target': 'Pan-Actin', 'clonality': 'Monoclonal', 'clone': 'D18C11', 'host': 'Rabbit', 'isotype': 'IgG',
+        'make': 'Cell Signaling Technology', 'catalog': '8456', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA', 'live_cell_compatible': 'No', 'comments': 'Rabbit monoclonal'
+    },
     # 18. Pax7 (NeoBiotechnologies)_DataSheet.pdf
-    {'target': 'Pax7', 'host': 'Mouse', 'isotype': 'IgG1', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'Pax7', 'clonality': 'Monoclonal', 'clone': 'PAX7/497', 'host': 'Mouse', 'isotype': 'IgG1',
+        'make': 'NeoBiotechnologies', 'catalog': '5081-MSM1', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': ''
+    },
     # 19. Sarc-aActinin mice mAB (Sigma)_DataSheet.pdf
-    {'target': 'Sarcomeric alpha-Actinin', 'host': 'Mouse', 'isotype': 'IgG1', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'Sarcomeric alpha-Actinin', 'clonality': 'Monoclonal', 'clone': 'EA-53', 'host': 'Mouse', 'isotype': 'IgG1',
+        'make': 'Sigma-Aldrich', 'catalog': 'A7811', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': 'Z-line marker'
+    },
     # 20. Telethonin(G-11)_mAb_SantaCruz_sc-25327.pdf
-    {'target': 'Telethonin', 'host': 'Mouse', 'isotype': 'IgG1', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'Telethonin', 'clonality': 'Monoclonal', 'clone': 'G-11', 'host': 'Mouse', 'isotype': 'IgG1',
+        'make': 'Santa Cruz', 'catalog': 'sc-25327', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': ''
+    },
     # 21. Ubiquitin (P4D1)_Mice mAB_EnzoLifeSciences_BML-PW0930-0100.pdf
-    {'target': 'Ubiquitin', 'host': 'Mouse', 'isotype': 'IgG1', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'Ubiquitin', 'clonality': 'Monoclonal', 'clone': 'P4D1', 'host': 'Mouse', 'isotype': 'IgG1',
+        'make': 'Enzo Life Sciences', 'catalog': 'BML-PW0930-0100', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': ''
+    },
     # 22. Vimentin mice mAB (Invitrogen)_DataSheet.pdf
-    {'target': 'Vimentin', 'host': 'Mouse', 'isotype': 'IgM', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'Vimentin', 'clonality': 'Monoclonal', 'clone': 'VI-10', 'host': 'Mouse', 'isotype': 'IgM',
+        'make': 'Invitrogen', 'catalog': 'MA1-10459', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': ''
+    },
     # 23. a-Tubulin mice mAB (Sigma)_DataSheet.pdf
-    {'target': 'alpha-Tubulin', 'host': 'Mouse', 'isotype': 'IgG1', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'alpha-Tubulin', 'clonality': 'Monoclonal', 'clone': 'DM1A', 'host': 'Mouse', 'isotype': 'IgG1',
+        'make': 'Sigma-Aldrich', 'catalog': 'T9026', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': ''
+    },
     # 24. a-Tubulin mice mAB - DM1a (Invitrogen)_DataSheet.pdf
-    {'target': 'alpha-Tubulin', 'host': 'Mouse', 'isotype': 'IgG1', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'alpha-Tubulin', 'clonality': 'Monoclonal', 'clone': 'DM1A', 'host': 'Mouse', 'isotype': 'IgG1',
+        'make': 'Invitrogen', 'catalog': '62204', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': ''
+    },
     # 25. aActinin-1 Rabbit mAB (CST)_DataSheet.pdf
-    {'target': 'alpha-Actinin 1', 'host': 'Rabbit', 'isotype': 'IgG', 'applications': 'ICC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA', 'live_cell_compatible': 'No'},
+    {
+        'target': 'alpha-Actinin 1', 'clonality': 'Monoclonal', 'clone': 'D13E12', 'host': 'Rabbit', 'isotype': 'IgG',
+        'make': 'Cell Signaling Technology', 'catalog': '6487', 'applications': 'ICC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA', 'live_cell_compatible': 'No', 'comments': 'Rabbit monoclonal'
+    },
     # 26. alphaActin (5C5)_mIgMk_SantaCruz_sc-58670.pdf
-    {'target': 'alpha-Actin', 'host': 'Mouse', 'isotype': 'IgM', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'alpha-Actin', 'clonality': 'Monoclonal', 'clone': '5C5', 'host': 'Mouse', 'isotype': 'IgM',
+        'make': 'Santa Cruz', 'catalog': 'sc-58670', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': ''
+    },
     # 27. betaActin (15G5A11-E2)_mIgG1_Invitrogen_MA1-140.pdf
-    {'target': 'beta-Actin', 'host': 'Mouse', 'isotype': 'IgG1', 'applications': 'ICC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'beta-Actin', 'clonality': 'Monoclonal', 'clone': '15G5A11/E2', 'host': 'Mouse', 'isotype': 'IgG1',
+        'make': 'Invitrogen', 'catalog': 'MA1-140', 'applications': 'ICC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': ''
+    },
     # 28. betaActin (AC74)_mIgG2a_Sigma_A2228.pdf
-    {'target': 'beta-Actin', 'host': 'Mouse', 'isotype': 'IgG2a', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'beta-Actin', 'clonality': 'Monoclonal', 'clone': 'AC-74', 'host': 'Mouse', 'isotype': 'IgG2a',
+        'make': 'Sigma-Aldrich', 'catalog': 'A2228', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': ''
+    },
     # 29. betaActin (arg)_rPoly_Sigma_ABT264.pdf
-    {'target': 'beta-Actin (Arginylated)', 'host': 'Rabbit', 'isotype': 'IgG', 'applications': 'ICC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'beta-Actin (Arginylated)', 'clonality': 'Polyclonal', 'clone': 'Polyclonal', 'host': 'Rabbit', 'isotype': 'IgG',
+        'make': 'Sigma-Aldrich', 'catalog': 'ABT264', 'applications': 'ICC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': 'Arginylated beta-Actin'
+    },
     # 30. gammaActin (2A3)_mIgG2b_Abcam_ab123034.pdf
-    {'target': 'gamma-Actin', 'host': 'Mouse', 'isotype': 'IgG2b', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'gamma-Actin', 'clonality': 'Monoclonal', 'clone': '2A3', 'host': 'Mouse', 'isotype': 'IgG2b',
+        'make': 'Abcam', 'catalog': 'ab123034', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': ''
+    },
     # 31. panActin (D18C11)_rIgG1_CST_8456.pdf
-    {'target': 'Pan-Actin', 'host': 'Rabbit', 'isotype': 'IgG', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA', 'live_cell_compatible': 'No'},
+    {
+        'target': 'Pan-Actin', 'clonality': 'Monoclonal', 'clone': 'D18C11', 'host': 'Rabbit', 'isotype': 'IgG',
+        'make': 'Cell Signaling Technology', 'catalog': '8456', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA', 'live_cell_compatible': 'No', 'comments': 'Rabbit monoclonal'
+    },
     # 32. sm-alphaActin (1A4)_mIgG2a_Sigma_A2547.pdf
-    {'target': 'Smooth Muscle alpha-Actin', 'host': 'Mouse', 'isotype': 'IgG2a', 'applications': 'ICC, IHC, WB', 'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No'},
+    {
+        'target': 'Smooth Muscle alpha-Actin', 'clonality': 'Monoclonal', 'clone': '1A4', 'host': 'Mouse', 'isotype': 'IgG2a',
+        'make': 'Sigma-Aldrich', 'catalog': 'A2547', 'applications': 'ICC, IHC, WB',
+        'conjugated_color': '', 'fixation_compatible': 'PFA, Methanol', 'live_cell_compatible': 'No', 'comments': ''
+    },
 ]
 
 ws_prim.append(prim_headers)
@@ -125,129 +284,176 @@ for item in primaries_data:
     ws_prim.append([item[h] for h in prim_headers])
 
 # 3. Secondaries (User Lab Inventory from Screenshot)
-sec_headers = ['anti_host', 'anti_isotype', 'conjugate', 'conjugate_type', 'color', 'excitation_nm', 'emission_nm', 'applications']
+sec_headers = [
+    'anti_host', 'anti_isotype', 'host', 'conjugate', 'conjugate_type',
+    'color', 'excitation_nm', 'emission_nm', 'applications', 'make', 'catalogue', 'comments'
+]
 
 secondaries_data = [
     # 1. Donkey Anti-Goat IgG HRP Conjugate | Cat: A15999
     {
         'anti_host': 'Goat',
         'anti_isotype': 'IgG (H+L)',
-        'conjugate': 'HRP (Donkey, Invitrogen A15999)',
+        'host': 'Donkey',
+        'conjugate': 'HRP',
         'conjugate_type': 'HRP',
         'color': '',
         'excitation_nm': '',
         'emission_nm': '',
-        'applications': 'WB'
+        'applications': 'WB',
+        'make': 'Invitrogen',
+        'catalogue': 'A15999',
+        'comments': 'Donkey anti-Goat HRP'
     },
     # 2. Goat Anti Mouse Alexafluor-488 IgM (µ chain) | Cat: A21042
     {
         'anti_host': 'Mouse',
         'anti_isotype': 'IgM',
-        'conjugate': 'Alexa Fluor 488 (Goat, Invitrogen A21042)',
+        'host': 'Goat',
+        'conjugate': 'Alexa Fluor 488',
         'conjugate_type': 'Fluorophore',
         'color': 'Green',
         'excitation_nm': 490,
         'emission_nm': 525,
-        'applications': 'ICC, IHC, WB'
+        'applications': 'ICC, IHC, WB',
+        'make': 'Invitrogen',
+        'catalogue': 'A21042',
+        'comments': 'Goat anti-Mouse IgM (µ chain)'
     },
     # 3. Donkey Anti Rabbit alexafluor-488 | Cat: A21206
     {
         'anti_host': 'Rabbit',
         'anti_isotype': 'IgG (H+L)',
-        'conjugate': 'Alexa Fluor 488 (Donkey, Invitrogen A21206)',
+        'host': 'Donkey',
+        'conjugate': 'Alexa Fluor 488',
         'conjugate_type': 'Fluorophore',
         'color': 'Green',
         'excitation_nm': 490,
         'emission_nm': 525,
-        'applications': 'ICC, IHC, WB'
+        'applications': 'ICC, IHC, WB',
+        'make': 'Invitrogen',
+        'catalogue': 'A21206',
+        'comments': 'Received Jan 2020'
     },
     # 4. Anti Chicken alexa-633 IgY (H+L) Goat Ab | Cat: A21103
     {
         'anti_host': 'Chicken',
         'anti_isotype': 'IgY (H+L)',
-        'conjugate': 'Alexa Fluor 633 (Goat, Invitrogen A21103)',
+        'host': 'Goat',
+        'conjugate': 'Alexa Fluor 633',
         'conjugate_type': 'Fluorophore',
         'color': 'Far-Red',
         'excitation_nm': 632,
         'emission_nm': 647,
-        'applications': 'ICC, IHC, WB'
+        'applications': 'ICC, IHC, WB',
+        'make': 'Invitrogen',
+        'catalogue': 'A21103',
+        'comments': 'Common 4 deg box'
     },
     # 5. Goat Anti-Rabbit alexafluor-647 | Cat: A21245
     {
         'anti_host': 'Rabbit',
         'anti_isotype': 'IgG (H+L)',
-        'conjugate': 'Alexa Fluor 647 (Goat, Invitrogen A21245)',
+        'host': 'Goat',
+        'conjugate': 'Alexa Fluor 647',
         'conjugate_type': 'Fluorophore',
         'color': 'Far-Red',
         'excitation_nm': 650,
         'emission_nm': 665,
-        'applications': 'ICC, IHC, WB'
+        'applications': 'ICC, IHC, WB',
+        'make': 'Invitrogen',
+        'catalogue': 'A21245',
+        'comments': 'Goat anti-Rabbit IgG (H+L)'
     },
     # 6. Goat Anti Mouse Alexafluor-647 | Cat: A21235
     {
         'anti_host': 'Mouse',
         'anti_isotype': 'IgG (H+L)',
-        'conjugate': 'Alexa Fluor 647 (Goat, Invitrogen A21235)',
+        'host': 'Goat',
+        'conjugate': 'Alexa Fluor 647',
         'conjugate_type': 'Fluorophore',
         'color': 'Far-Red',
         'excitation_nm': 650,
         'emission_nm': 665,
-        'applications': 'ICC, IHC, WB'
+        'applications': 'ICC, IHC, WB',
+        'make': 'Invitrogen',
+        'catalogue': 'A21235',
+        'comments': 'Goat anti-Mouse IgG (H+L)'
     },
     # 7. Goat Anti Mouse Alexafluor-488 | Cat: A11001
     {
         'anti_host': 'Mouse',
         'anti_isotype': 'IgG (H+L)',
-        'conjugate': 'Alexa Fluor 488 (Goat, Invitrogen A11001)',
+        'host': 'Goat',
+        'conjugate': 'Alexa Fluor 488',
         'conjugate_type': 'Fluorophore',
         'color': 'Green',
         'excitation_nm': 490,
         'emission_nm': 525,
-        'applications': 'ICC, IHC, WB'
+        'applications': 'ICC, IHC, WB',
+        'make': 'Invitrogen',
+        'catalogue': 'A11001',
+        'comments': 'Goat anti-Mouse IgG (H+L)'
     },
     # 8. Goat Anti-Rabbit alexafluor-647 | Cat: A32733 (Alexa Fluor Plus 647)
     {
         'anti_host': 'Rabbit',
         'anti_isotype': 'IgG (H+L)',
-        'conjugate': 'Alexa Fluor Plus 647 (Goat, Invitrogen A32733)',
+        'host': 'Goat',
+        'conjugate': 'Alexa Fluor Plus 647',
         'conjugate_type': 'Fluorophore',
         'color': 'Far-Red',
         'excitation_nm': 650,
         'emission_nm': 665,
-        'applications': 'ICC, IHC, WB'
+        'applications': 'ICC, IHC, WB',
+        'make': 'Invitrogen',
+        'catalogue': 'A32733',
+        'comments': 'Alexa Fluor Plus 647'
     },
     # 9. Goat Anti Mouse alexa-647 | Cat: A32728 (Alexa Fluor Plus 647)
     {
         'anti_host': 'Mouse',
         'anti_isotype': 'IgG (H+L)',
-        'conjugate': 'Alexa Fluor Plus 647 (Goat, Invitrogen A32728)',
+        'host': 'Goat',
+        'conjugate': 'Alexa Fluor Plus 647',
         'conjugate_type': 'Fluorophore',
         'color': 'Far-Red',
         'excitation_nm': 650,
         'emission_nm': 665,
-        'applications': 'ICC, IHC, WB'
+        'applications': 'ICC, IHC, WB',
+        'make': 'Invitrogen',
+        'catalogue': 'A32728',
+        'comments': 'Alexa Fluor Plus 647'
     },
     # 10. Goat Anti-Rabbit Alexafluor 555 | Cat: A32732 (Alexa Fluor Plus 555)
     {
         'anti_host': 'Rabbit',
         'anti_isotype': 'IgG (H+L)',
-        'conjugate': 'Alexa Fluor Plus 555 (Goat, Invitrogen A32732)',
+        'host': 'Goat',
+        'conjugate': 'Alexa Fluor Plus 555',
         'conjugate_type': 'Fluorophore',
         'color': 'Red',
         'excitation_nm': 555,
         'emission_nm': 565,
-        'applications': 'ICC, IHC, WB'
+        'applications': 'ICC, IHC, WB',
+        'make': 'Invitrogen',
+        'catalogue': 'A32732',
+        'comments': 'Alexa Fluor Plus 555'
     },
     # 11. Streptavidin Alexafluor 488 conjugate | Cat: S32354
     {
         'anti_host': 'Biotin',
         'anti_isotype': 'Biotin',
-        'conjugate': 'Alexa Fluor 488 (Streptavidin, Invitrogen S32354)',
+        'host': 'Streptavidin',
+        'conjugate': 'Alexa Fluor 488',
         'conjugate_type': 'Fluorophore',
         'color': 'Green',
         'excitation_nm': 490,
         'emission_nm': 525,
-        'applications': 'ICC, IHC, WB'
+        'applications': 'ICC, IHC, WB',
+        'make': 'Invitrogen',
+        'catalogue': 'S32354',
+        'comments': 'Streptavidin AF488 conjugate'
     }
 ]
 
@@ -255,18 +461,23 @@ ws_sec.append(sec_headers)
 for item in secondaries_data:
     ws_sec.append([item[h] for h in sec_headers])
 
-# 4. Direct Dyes (including Streptavidin-AF488, DAPI, Phalloidin, etc.)
-dyes_headers = ['name', 'target_structure', 'color', 'excitation_nm', 'emission_nm', 'live_cell_compatible']
-dyes_data = [
-    {'name': 'DAPI', 'target_structure': 'DNA', 'color': 'Blue', 'excitation_nm': 360, 'emission_nm': 460, 'live_cell_compatible': 'Yes'},
-    {'name': 'Hoechst 33342', 'target_structure': 'DNA', 'color': 'Blue', 'excitation_nm': 350, 'emission_nm': 461, 'live_cell_compatible': 'Yes'},
-    {'name': 'Phalloidin-AF488', 'target_structure': 'F-Actin', 'color': 'Green', 'excitation_nm': 495, 'emission_nm': 518, 'live_cell_compatible': 'No'},
-    {'name': 'Phalloidin-AF594', 'target_structure': 'F-Actin', 'color': 'Red', 'excitation_nm': 590, 'emission_nm': 617, 'live_cell_compatible': 'No'},
-    {'name': 'SiR-Actin', 'target_structure': 'F-Actin', 'color': 'Far-Red', 'excitation_nm': 652, 'emission_nm': 674, 'live_cell_compatible': 'Yes'},
-    {'name': 'MitoTracker Red', 'target_structure': 'Mitochondria', 'color': 'Red', 'excitation_nm': 579, 'emission_nm': 599, 'live_cell_compatible': 'Yes'},
-    {'name': 'WGA-AF488', 'target_structure': 'Membrane', 'color': 'Green', 'excitation_nm': 495, 'emission_nm': 519, 'live_cell_compatible': 'Yes'},
-    {'name': 'Streptavidin-AF488 (S32354)', 'target_structure': 'Biotinylated Targets', 'color': 'Green', 'excitation_nm': 490, 'emission_nm': 525, 'live_cell_compatible': 'No'},
+# 4. Direct Dyes (including make and catalogue)
+dyes_headers = [
+    'name', 'target_structure', 'color', 'excitation_nm', 'emission_nm',
+    'live_cell_compatible', 'make', 'catalogue'
 ]
+
+dyes_data = [
+    {'name': 'DAPI', 'target_structure': 'DNA', 'color': 'Blue', 'excitation_nm': 360, 'emission_nm': 460, 'live_cell_compatible': 'Yes', 'make': 'Invitrogen', 'catalogue': 'D1306'},
+    {'name': 'Hoechst 33342', 'target_structure': 'DNA', 'color': 'Blue', 'excitation_nm': 350, 'emission_nm': 461, 'live_cell_compatible': 'Yes', 'make': 'Invitrogen', 'catalogue': 'H1399'},
+    {'name': 'Phalloidin-AF488', 'target_structure': 'F-Actin', 'color': 'Green', 'excitation_nm': 495, 'emission_nm': 518, 'live_cell_compatible': 'No', 'make': 'Invitrogen', 'catalogue': 'A12379'},
+    {'name': 'Phalloidin-AF594', 'target_structure': 'F-Actin', 'color': 'Red', 'excitation_nm': 590, 'emission_nm': 617, 'live_cell_compatible': 'No', 'make': 'Invitrogen', 'catalogue': 'A12381'},
+    {'name': 'SiR-Actin', 'target_structure': 'F-Actin', 'color': 'Far-Red', 'excitation_nm': 652, 'emission_nm': 674, 'live_cell_compatible': 'Yes', 'make': 'Spirochrome', 'catalogue': 'CY-SC001'},
+    {'name': 'MitoTracker Red', 'target_structure': 'Mitochondria', 'color': 'Red', 'excitation_nm': 579, 'emission_nm': 599, 'live_cell_compatible': 'Yes', 'make': 'Invitrogen', 'catalogue': 'M7512'},
+    {'name': 'WGA-AF488', 'target_structure': 'Membrane', 'color': 'Green', 'excitation_nm': 495, 'emission_nm': 519, 'live_cell_compatible': 'Yes', 'make': 'Invitrogen', 'catalogue': 'W11261'},
+    {'name': 'Streptavidin-AF488', 'target_structure': 'Biotinylated Targets', 'color': 'Green', 'excitation_nm': 490, 'emission_nm': 525, 'live_cell_compatible': 'No', 'make': 'Invitrogen', 'catalogue': 'S32354'},
+]
+
 ws_dyes.append(dyes_headers)
 for item in dyes_data:
     ws_dyes.append([item[h] for h in dyes_headers])
@@ -279,6 +490,7 @@ rep_data = [
     {'reporter_name': 'mTagBFP2', 'color': 'Blue', 'excitation_nm': 399, 'emission_nm': 454, 'recommended_fixation': 'PFA'},
     {'reporter_name': 'iRFP670', 'color': 'Far-Red', 'excitation_nm': 643, 'emission_nm': 670, 'recommended_fixation': 'PFA'},
 ]
+
 ws_rep.append(rep_headers)
 for item in rep_data:
     ws_rep.append([item[h] for h in rep_headers])
@@ -298,8 +510,9 @@ for ws in [ws_prim, ws_sec, ws_dyes, ws_rep]:
             c = ws.cell(row=row_idx, column=col_idx)
             c.font = data_font
             c.border = cell_border
+            header_val = ws.cell(row=1, column=col_idx).value
             # center alignment for short columns
-            if ws.cell(row=1, column=col_idx).value in ['host', 'isotype', 'color', 'excitation_nm', 'emission_nm', 'live_cell_compatible', 'anti_host', 'conjugate_type', 'recommended_fixation']:
+            if header_val in ['host', 'isotype', 'color', 'excitation_nm', 'emission_nm', 'live_cell_compatible', 'anti_host', 'conjugate_type', 'recommended_fixation', 'clonality']:
                 c.alignment = Alignment(horizontal='center', vertical='center')
             else:
                 c.alignment = Alignment(horizontal='left', vertical='center')
@@ -315,7 +528,7 @@ for ws in [ws_prim, ws_sec, ws_dyes, ws_rep]:
         ws.column_dimensions[col_letter].width = max(max_len + 4, 12)
 
 # Set Instructions column A width
-ws_inst.column_dimensions['A'].width = 85
+ws_inst.column_dimensions['A'].width = 95
 
 # Save files
 paths = [
@@ -329,43 +542,46 @@ for p in paths:
     wb.save(p)
     print(f'Successfully saved: {p}')
 
-# Also update data/secondary_antibodies.csv in IFGuidePy
-csv_path = r'd:\01_VSI Academic\PhD Data\Coding\Python Coding\IFGuidePy\data\secondary_antibodies.csv'
-csv_cols = ['id', 'anti_host', 'anti_isotype', 'conjugate', 'conjugate_type', 'excitation_nm', 'emission_nm', 'applications', 'catalog_no', 'supplier', 'notes']
+# Update data/primary_antibodies.csv in IFGuidePy
+prim_csv_path = r'd:\01_VSI Academic\PhD Data\Coding\Python Coding\IFGuidePy\data\primary_antibodies.csv'
+prim_csv_cols = ['id', 'target', 'clonality', 'clone', 'host', 'isotype', 'make', 'catalog', 'applications', 'conjugated_color', 'fixation_compatible', 'live_cell_compatible', 'comments']
 
-cat_map = {
-    'HRP (Donkey, Invitrogen A15999)': ('A15999', 'Invitrogen', 'Donkey anti-Goat HRP'),
-    'Alexa Fluor 488 (Goat, Invitrogen A21042)': ('A21042', 'Invitrogen', 'Goat anti-Mouse IgM (µ chain)'),
-    'Alexa Fluor 488 (Donkey, Invitrogen A21206)': ('A21206', 'Invitrogen', 'Donkey anti-Rabbit IgG (H+L)'),
-    'Alexa Fluor 633 (Goat, Invitrogen A21103)': ('A21103', 'Invitrogen', 'Goat anti-Chicken IgY (H+L), Common 4 deg box'),
-    'Alexa Fluor 647 (Goat, Invitrogen A21245)': ('A21245', 'Invitrogen', 'Goat anti-Rabbit IgG (H+L)'),
-    'Alexa Fluor 647 (Goat, Invitrogen A21235)': ('A21235', 'Invitrogen', 'Goat anti-Mouse IgG (H+L)'),
-    'Alexa Fluor 488 (Goat, Invitrogen A11001)': ('A11001', 'Invitrogen', 'Goat anti-Mouse IgG (H+L)'),
-    'Alexa Fluor Plus 647 (Goat, Invitrogen A32733)': ('A32733', 'Invitrogen', 'Goat anti-Rabbit IgG (H+L) Plus 647'),
-    'Alexa Fluor Plus 647 (Goat, Invitrogen A32728)': ('A32728', 'Invitrogen', 'Goat anti-Mouse IgG (H+L) Plus 647'),
-    'Alexa Fluor Plus 555 (Goat, Invitrogen A32732)': ('A32732', 'Invitrogen', 'Goat anti-Rabbit IgG (H+L) Plus 555'),
-    'Alexa Fluor 488 (Streptavidin, Invitrogen S32354)': ('S32354', 'Invitrogen', 'Streptavidin AF488 conjugate')
-}
+with open(prim_csv_path, 'w', newline='', encoding='utf-8') as f:
+    writer = csv.DictWriter(f, fieldnames=prim_csv_cols)
+    writer.writeheader()
+    for idx, p in enumerate(primaries_data, 1):
+        row = {'id': f'pab_{idx:03d}'}
+        for h in prim_headers:
+            row[h] = p[h]
+        writer.writerow(row)
+print(f'Successfully updated: {prim_csv_path}')
 
-with open(csv_path, 'w', newline='', encoding='utf-8') as f:
-    writer = csv.DictWriter(f, fieldnames=csv_cols)
+# Update data/secondary_antibodies.csv in IFGuidePy
+sec_csv_path = r'd:\01_VSI Academic\PhD Data\Coding\Python Coding\IFGuidePy\data\secondary_antibodies.csv'
+sec_csv_cols = ['id', 'anti_host', 'anti_isotype', 'host', 'conjugate', 'conjugate_type', 'color', 'excitation_nm', 'emission_nm', 'applications', 'make', 'catalogue', 'comments']
+
+with open(sec_csv_path, 'w', newline='', encoding='utf-8') as f:
+    writer = csv.DictWriter(f, fieldnames=sec_csv_cols)
     writer.writeheader()
     for idx, s in enumerate(secondaries_data, 1):
-        meta = cat_map.get(s['conjugate'], ('', 'Invitrogen', ''))
-        row = {
-            'id': f'sab_{idx:03d}',
-            'anti_host': s['anti_host'],
-            'anti_isotype': s['anti_isotype'],
-            'conjugate': s['conjugate'],
-            'conjugate_type': s['conjugate_type'],
-            'excitation_nm': s['excitation_nm'],
-            'emission_nm': s['emission_nm'],
-            'applications': s['applications'],
-            'catalog_no': meta[0],
-            'supplier': meta[1],
-            'notes': meta[2]
-        }
+        row = {'id': f'sab_{idx:03d}'}
+        for h in sec_headers:
+            row[h] = s[h]
         writer.writerow(row)
-print(f'Successfully updated default CSV: {csv_path}')
+print(f'Successfully updated: {sec_csv_path}')
 
-print('All databases updated successfully with lab secondary inventory!')
+# Update data/direct_dyes.csv in IFGuidePy
+dyes_csv_path = r'd:\01_VSI Academic\PhD Data\Coding\Python Coding\IFGuidePy\data\direct_dyes.csv'
+dyes_csv_cols = ['id', 'name', 'target_structure', 'color', 'excitation_nm', 'emission_nm', 'live_cell_compatible', 'make', 'catalogue']
+
+with open(dyes_csv_path, 'w', newline='', encoding='utf-8') as f:
+    writer = csv.DictWriter(f, fieldnames=dyes_csv_cols)
+    writer.writeheader()
+    for idx, d in enumerate(dyes_data, 1):
+        row = {'id': f'dye_{idx:03d}'}
+        for h in dyes_headers:
+            row[h] = d[h]
+        writer.writerow(row)
+print(f'Successfully updated: {dyes_csv_path}')
+
+print('All Excel workbooks and project CSVs updated successfully!')

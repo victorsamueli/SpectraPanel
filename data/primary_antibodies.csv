@@ -1,8 +1,33 @@
-id,target,host,isotype,clonality,clone,conjugated_fluorophore,conjugated_color,applications,dilution_icc,dilution_ihc,dilution_wb,catalog_no,supplier,fixation_method,fixation_compatible,permeabilization,blocking_buffer,incubation_conditions,antigen_retrieval,mol_weight_kda,subcellular_location,species_reactivity,live_cell_compatible,notes
-pab_001,Ki67,Rabbit,IgG,Monoclonal,SP6,,,ICC, IHC, WB,1:200,1:100,1:1000,ab16667,Abcam,4% PFA, 15 min, RT,"PFA, Methanol",0.1% Triton X-100, 10 min,"5% NGS, 1% BSA, 1h RT",4°C overnight,Citrate buffer pH 6.0, 20 min,359,Nuclear,"Human, Mouse, Rat",No,
-pab_002,Vimentin,Mouse,IgG1,Monoclonal,V9,,,ICC, IHC, WB,1:200,1:100,1:1000,ab92547,Abcam,4% PFA, 15 min, RT,"PFA, Methanol",0.1% Triton X-100, 10 min,"5% NGS, 1% BSA, 1h RT",4°C overnight,Citrate buffer pH 6.0, 20 min,54,Cytoplasmic,"Human, Mouse, Rat",No,
-pab_003,E-Cadherin,Mouse,IgG2a,Monoclonal,HECD-1,,,ICC, IHC, WB,1:100,1:100,1:500,ab1416,Abcam,4% PFA, 15 min, RT,PFA,0.1% Triton X-100, 10 min,"5% NGS, 1% BSA, 1h RT",4°C overnight,Tris-EDTA pH 9.0, 20 min,120,Membrane,Human,No,
-pab_004,CD45,Rat,IgG2b,Monoclonal,30-F11,,,ICC, IHC,1:100,1:100,,103102,BioLegend,4% PFA, 15 min, RT,PFA,0.1% Triton X-100, 10 min,"5% NGS, 1h RT",4°C overnight,,147,Membrane,Mouse,Yes,
-pab_005,GFAP,Chicken,IgY,Polyclonal,,,,ICC, IHC, WB,1:1000,1:500,1:5000,ab4674,Abcam,4% PFA, 15 min, RT,"PFA, Methanol",0.1% Triton X-100, 10 min,"5% NGS, 1h RT",4°C overnight,Citrate buffer pH 6.0, 20 min,50,Cytoplasmic,"Human, Mouse, Rat",No,
-pab_006,CD31,Rabbit,IgG,Polyclonal,,,,ICC, IHC, WB,1:50,1:50,1:500,ab28364,Abcam,4% PFA, 15 min, RT,PFA,0.1% Triton X-100, 10 min,"5% NGS, 1h RT",4°C overnight,Tris-EDTA pH 9.0, 20 min,130,Membrane,"Human, Mouse",No,
-pab_007,beta-Actin,Mouse,IgG1,Monoclonal,AC-15,FITC,Green,ICC, IHC, WB,1:100,1:100,1:1000,A9224,Sigma,4% PFA, 15 min, RT,"PFA, Methanol",0.1% Triton X-100, 10 min,"5% NGS, 1h RT",RT 1h,,42,Cytoskeleton,"Human, Mouse, Rat",No,Directly conjugated
+id,target,clonality,clone,host,isotype,make,catalog,applications,conjugated_color,fixation_compatible,live_cell_compatible,comments
+pab_001,Pax7,Monoclonal,PAX7/497,Mouse,IgG1,NeoBiotechnologies,5081-MSM1-P0,"ICC, IHC, WB",,"PFA, Methanol",No,
+pab_002,MyoD,Monoclonal,5.8A,Mouse,IgG1,BD Pharmingen,554130,"ICC, IHC, WB",,PFA,No,
+pab_003,MyoD,Recombinant Monoclonal,HL1372,Rabbit,IgG,Invitrogen,MA5-47019,"ICC, IHC, WB",,PFA,No,Recombinant rabbit monoclonal
+pab_004,alpha-Actinin 2,Recombinant Monoclonal,7H1L69,Rabbit,IgG,Invitrogen,701914,"ICC, WB",,"PFA, Methanol",No,Recombinant rabbit monoclonal
+pab_005,Titin,Monoclonal,9D10,Mouse,IgM,DSHB,9D10,"ICC, IHC, WB",,"PFA, Methanol",No,Hybridoma bank clone
+pab_006,CAPZA1,Monoclonal,mAb 5B12.3,Mouse,IgG2a,DSHB,mAb 5B12.3,"ICC, IHC, WB",,Methanol,No,Hybridoma bank clone
+pab_007,CAPZB,Monoclonal,mAb 3F2.3,Mouse,IgG2a,DSHB,mAb 3F2.3,"ICC, IHC, WB",,Methanol,No,Hybridoma bank clone
+pab_008,Troponin T,Monoclonal,JLT12,Mouse,IgG1,DSHB,JLT12,"ICC, WB",,PFA,No,Hybridoma bank clone
+pab_009,Myosin Heavy Chain,Monoclonal,MF 20,Mouse,IgG2b,DSHB,MF 20,"ICC, IHC, WB",,"PFA, Methanol",No,Pan-sarcomeric MHC
+pab_010,Pax7,Monoclonal,PAX7,Mouse,IgG1,DSHB,PAX7,"ICC, IHC, WB",,"PFA, Methanol",No,Hybridoma bank clone
+pab_011,Troponin I,Monoclonal,TI-4,Mouse,IgG1,DSHB,TI-4,"ICC, IHC, WB",,"PFA, Methanol",No,Cardiac & skeletal Troponin I
+pab_012,Myomesin,Monoclonal,mMaC myomesin B4,Mouse,IgG1,DSHB,mMaC myomesin B4,"ICC, IHC, WB",,"PFA, Methanol",No,M-band marker
+pab_013,GAPDH,Monoclonal,GA1R,Mouse,IgG1,Invitrogen,MA5-15738,"ICC, IHC, WB",,"PFA, Methanol",No,
+pab_014,LMOD3,Polyclonal,Polyclonal,Rabbit,IgG,Proteintech,14948-1-AP,"ICC, IHC, WB",,"PFA, Methanol",No,
+pab_015,Lamin A/C,Monoclonal,636,Mouse,IgG2b,Santa Cruz,sc-7292,"ICC, IHC, WB",,"PFA, Methanol",No,Nuclear envelope marker
+pab_016,Nexilin,Monoclonal,NX-38,Mouse,IgG2a,Sigma-Aldrich,SAB4200124,"ICC, WB",,"PFA, Methanol",No,
+pab_017,Pan-Actin,Monoclonal,D18C11,Rabbit,IgG,Cell Signaling Technology,8456,"ICC, IHC, WB",,PFA,No,Rabbit monoclonal
+pab_018,Pax7,Monoclonal,PAX7/497,Mouse,IgG1,NeoBiotechnologies,5081-MSM1,"ICC, IHC, WB",,"PFA, Methanol",No,
+pab_019,Sarcomeric alpha-Actinin,Monoclonal,EA-53,Mouse,IgG1,Sigma-Aldrich,A7811,"ICC, IHC, WB",,"PFA, Methanol",No,Z-line marker
+pab_020,Telethonin,Monoclonal,G-11,Mouse,IgG1,Santa Cruz,sc-25327,"ICC, IHC, WB",,"PFA, Methanol",No,
+pab_021,Ubiquitin,Monoclonal,P4D1,Mouse,IgG1,Enzo Life Sciences,BML-PW0930-0100,"ICC, IHC, WB",,"PFA, Methanol",No,
+pab_022,Vimentin,Monoclonal,VI-10,Mouse,IgM,Invitrogen,MA1-10459,"ICC, IHC, WB",,"PFA, Methanol",No,
+pab_023,alpha-Tubulin,Monoclonal,DM1A,Mouse,IgG1,Sigma-Aldrich,T9026,"ICC, IHC, WB",,"PFA, Methanol",No,
+pab_024,alpha-Tubulin,Monoclonal,DM1A,Mouse,IgG1,Invitrogen,62204,"ICC, IHC, WB",,"PFA, Methanol",No,
+pab_025,alpha-Actinin 1,Monoclonal,D13E12,Rabbit,IgG,Cell Signaling Technology,6487,"ICC, WB",,PFA,No,Rabbit monoclonal
+pab_026,alpha-Actin,Monoclonal,5C5,Mouse,IgM,Santa Cruz,sc-58670,"ICC, IHC, WB",,"PFA, Methanol",No,
+pab_027,beta-Actin,Monoclonal,15G5A11/E2,Mouse,IgG1,Invitrogen,MA1-140,"ICC, WB",,"PFA, Methanol",No,
+pab_028,beta-Actin,Monoclonal,AC-74,Mouse,IgG2a,Sigma-Aldrich,A2228,"ICC, IHC, WB",,"PFA, Methanol",No,
+pab_029,beta-Actin (Arginylated),Polyclonal,Polyclonal,Rabbit,IgG,Sigma-Aldrich,ABT264,"ICC, WB",,"PFA, Methanol",No,Arginylated beta-Actin
+pab_030,gamma-Actin,Monoclonal,2A3,Mouse,IgG2b,Abcam,ab123034,"ICC, IHC, WB",,"PFA, Methanol",No,
+pab_031,Pan-Actin,Monoclonal,D18C11,Rabbit,IgG,Cell Signaling Technology,8456,"ICC, IHC, WB",,PFA,No,Rabbit monoclonal
+pab_032,Smooth Muscle alpha-Actin,Monoclonal,1A4,Mouse,IgG2a,Sigma-Aldrich,A2547,"ICC, IHC, WB",,"PFA, Methanol",No,
