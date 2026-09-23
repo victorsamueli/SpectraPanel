@@ -153,6 +153,108 @@ document.addEventListener('DOMContentLoaded', () => {
         btnSaveChannels.addEventListener('click', () => UI.saveChannelSettings());
     }
 
+    // Scoring Weights Sliders & Save/Reset Handlers
+    const scoringSliderMap = [
+        { id: 'weight-coverage', badgeId: 'val-weight-coverage' },
+        { id: 'weight-crossads', badgeId: 'val-weight-crossads' },
+        { id: 'weight-hostdiv', badgeId: 'val-weight-hostdiv' },
+        { id: 'weight-fixation', badgeId: 'val-weight-fixation' },
+        { id: 'weight-spectral', badgeId: 'val-weight-spectral' }
+    ];
+    scoringSliderMap.forEach(item => {
+        const slider = document.getElementById(item.id);
+        const badge = document.getElementById(item.badgeId);
+        if (slider && badge) {
+            slider.addEventListener('input', (e) => {
+                badge.innerText = e.target.value;
+            });
+        }
+    });
+
+    const btnSaveScoringWeights = document.getElementById('btn-save-scoring-weights');
+    if (btnSaveScoringWeights) {
+        btnSaveScoringWeights.addEventListener('click', () => {
+            const weights = {
+                coverage: Number(document.getElementById('weight-coverage')?.value || 40),
+                crossAdsorption: Number(document.getElementById('weight-crossads')?.value || 20),
+                hostDiversity: Number(document.getElementById('weight-hostdiv')?.value || 15),
+                fixationPenalty: Number(document.getElementById('weight-fixation')?.value || 30),
+                spectralPenalty: Number(document.getElementById('weight-spectral')?.value || 35)
+            };
+            UI.setScoringWeights(weights);
+            const notice = document.getElementById('scoring-weights-saved-notice');
+            if (notice) {
+                notice.style.display = 'inline-block';
+                setTimeout(() => {
+                    notice.style.display = 'none';
+                }, 2500);
+            }
+        });
+    }
+
+    const btnResetScoringWeights = document.getElementById('btn-reset-scoring-weights');
+    if (btnResetScoringWeights) {
+        btnResetScoringWeights.addEventListener('click', () => {
+            UI.resetScoringWeights();
+        });
+    }
+
+    // Google Sheets Sync Tab Handlers
+    const gsheetInput = document.getElementById('gsheet-url-input');
+    const gsheetCb = document.getElementById('gsheet-autosync-cb');
+    const btnSyncGSheet = document.getElementById('btn-sync-gsheet');
+    const btnClearGSheet = document.getElementById('btn-clear-gsheet');
+
+    try {
+        const savedGSheet = localStorage.getItem('spectrapanel_gsheet_url');
+        const savedAutoSync = localStorage.getItem('spectrapanel_gsheet_autosync') === 'true';
+        if (gsheetInput && savedGSheet) {
+            gsheetInput.value = savedGSheet;
+            if (btnClearGSheet) btnClearGSheet.style.display = 'inline-flex';
+        }
+        if (gsheetCb) {
+            gsheetCb.checked = savedAutoSync;
+        }
+    } catch (e) {}
+
+    if (btnSyncGSheet) {
+        btnSyncGSheet.addEventListener('click', async () => {
+            const url = gsheetInput ? gsheetInput.value.trim() : '';
+            if (!url) {
+                alert("Please enter a valid Google Sheets URL.");
+                return;
+            }
+            btnSyncGSheet.disabled = true;
+            btnSyncGSheet.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Syncing...`;
+            try {
+                await DataLoader.loadFromGoogleSheets(url, gsheetCb ? gsheetCb.checked : false);
+                if (btnClearGSheet) btnClearGSheet.style.display = 'inline-flex';
+            } catch (err) {
+                console.error("Google Sheets sync failed:", err);
+            } finally {
+                btnSyncGSheet.disabled = false;
+                btnSyncGSheet.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> Sync & Load Inventory`;
+            }
+        });
+    }
+
+    if (btnClearGSheet) {
+        btnClearGSheet.addEventListener('click', () => {
+            try {
+                localStorage.removeItem('spectrapanel_gsheet_url');
+                localStorage.removeItem('spectrapanel_gsheet_autosync');
+            } catch (e) {}
+            if (gsheetInput) gsheetInput.value = '';
+            btnClearGSheet.style.display = 'none';
+            const statusMsg = document.getElementById('gsheet-status-msg');
+            if (statusMsg) {
+                statusMsg.style.display = 'block';
+                statusMsg.style.color = 'var(--text-secondary)';
+                statusMsg.innerHTML = `<i class="fa-solid fa-circle-info"></i> Google Sheet disconnected. Current active inventory is kept.`;
+            }
+        });
+    }
+
     // 5. Database Loaded Event Handler
     document.addEventListener('dbLoaded', () => {
         UI.updateTabCounts();
@@ -223,7 +325,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 reporters: selectedConfig.reporters,
                 dyes: selectedConfig.dyes,
                 lockedTargets: selectedConfig.lockedTargets,
-                lockedDyes: selectedConfig.lockedDyes
+                lockedDyes: selectedConfig.lockedDyes,
+                scoringWeights: UI.getScoringWeights ? UI.getScoringWeights() : undefined
             };
 
             try {

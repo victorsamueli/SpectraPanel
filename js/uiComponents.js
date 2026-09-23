@@ -9,6 +9,13 @@ const UI = {
             { id: 'ch_red', name: 'Red', hexColor: '#f87171', ex_min: 540, ex_max: 595, em_min: 565, em_max: 625 },
             { id: 'ch_farred', name: 'Far-Red', hexColor: '#c084fc', ex_min: 630, ex_max: 655, em_min: 660, em_max: 710 }
         ],
+        scoringWeights: {
+            coverage: 40,
+            crossAdsorption: 20,
+            hostDiversity: 15,
+            fixationPenalty: 30,
+            spectralPenalty: 35
+        },
         selectedReagents: [], // [{ id, name, type: 'Antibody'|'Dye'|'FP', dbRef, locked: boolean }]
         activeFilters: {
             primaries: [],
@@ -208,6 +215,76 @@ const UI = {
         });
     },
 
+    getScoringWeights() {
+        try {
+            const saved = localStorage.getItem('spectrapanel_scoring_weights');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed && typeof parsed === 'object') {
+                    return {
+                        coverage: Number(parsed.coverage ?? 40),
+                        crossAdsorption: Number(parsed.crossAdsorption ?? 20),
+                        hostDiversity: Number(parsed.hostDiversity ?? 15),
+                        fixationPenalty: Number(parsed.fixationPenalty ?? 30),
+                        spectralPenalty: Number(parsed.spectralPenalty ?? 35)
+                    };
+                }
+            }
+        } catch (e) {
+            console.warn("Could not load scoring weights from localStorage", e);
+        }
+        return { ...this.state.scoringWeights };
+    },
+
+    setScoringWeights(weights) {
+        this.state.scoringWeights = {
+            coverage: Number(weights.coverage ?? 40),
+            crossAdsorption: Number(weights.crossAdsorption ?? 20),
+            hostDiversity: Number(weights.hostDiversity ?? 15),
+            fixationPenalty: Number(weights.fixationPenalty ?? 30),
+            spectralPenalty: Number(weights.spectralPenalty ?? 35)
+        };
+        try {
+            localStorage.setItem('spectrapanel_scoring_weights', JSON.stringify(this.state.scoringWeights));
+        } catch (e) {}
+    },
+
+    initScoringWeights() {
+        const current = this.getScoringWeights();
+        this.state.scoringWeights = current;
+
+        const sliderMap = [
+            { id: 'weight-coverage', valId: 'val-weight-coverage', key: 'coverage' },
+            { id: 'weight-crossads', valId: 'val-weight-crossads', key: 'crossAdsorption' },
+            { id: 'weight-hostdiv', valId: 'val-weight-hostdiv', key: 'hostDiversity' },
+            { id: 'weight-fixation', valId: 'val-weight-fixation', key: 'fixationPenalty' },
+            { id: 'weight-spectral', valId: 'val-weight-spectral', key: 'spectralPenalty' }
+        ];
+
+        sliderMap.forEach(item => {
+            const slider = document.getElementById(item.id);
+            const badge = document.getElementById(item.valId);
+            if (slider && current[item.key] !== undefined) {
+                slider.value = current[item.key];
+            }
+            if (badge && current[item.key] !== undefined) {
+                badge.innerText = current[item.key];
+            }
+        });
+    },
+
+    resetScoringWeights() {
+        const defaults = {
+            coverage: 40,
+            crossAdsorption: 20,
+            hostDiversity: 15,
+            fixationPenalty: 30,
+            spectralPenalty: 35
+        };
+        this.setScoringWeights(defaults);
+        this.initScoringWeights();
+    },
+
     init() {
         // Load saved channel configuration if available
         try {
@@ -221,6 +298,9 @@ const UI = {
         } catch (e) {
             console.warn("Could not load saved channels from localStorage", e);
         }
+
+        // Initialize scoring weights from storage or defaults
+        this.initScoringWeights();
 
         // Render designer detection channels
         this.renderDesignerChannels();
@@ -1137,7 +1217,8 @@ ${message}
         channels.forEach(ch => {
             const items = channelMap[ch];
             if (items && items.length > 0) {
-                targetRow += `<td>${items.map(i => i.target).join('<br>+<br>')}</td>`;
+                const overlapBadge = items.length > 1 ? `<div class="ch-overlap-pill"><i class="fa-solid fa-triangle-exclamation"></i> Shared (${items.length})</div>` : '';
+                targetRow += `<td>${items.map(i => i.target).join('<br>+<br>')}${overlapBadge}</td>`;
                 priRow += `<td>${items.map(i => i.pri).join('<br>+<br>')}</td>`;
                 secRow += `<td>${items.map(i => i.sec).join('<br>+<br>')}</td>`;
             } else {
@@ -1150,10 +1231,23 @@ ${message}
         const isFixationOk = combo.fixation.valid;
         const fixationBadge = isFixationOk
             ? `<span class="fixation-icon status-ok" title="Fixation compatible"><i class="fa-solid fa-circle-check"></i> Fixation OK</span>`
-            : `<span class="fixation-icon status-warn" title="${combo.fixation.warnings.join(' | ')}"><i class="fa-solid fa-triangle-exclamation"></i> Conflict</span>`;
+            : `<span class="fixation-icon status-warn" title="${combo.fixation.warnings.join(' | ')}"><i class="fa-solid fa-triangle-exclamation"></i> Fixation Conflict</span>`;
+
+        const conflictMsgs = (combo.spectralConflicts && combo.spectralConflicts.length > 0)
+            ? combo.spectralConflicts
+            : ((combo.conflicts && combo.conflicts.length > 0) ? combo.conflicts.map(c => c.message || c) : []);
+
+        const hasSpectralConflict = conflictMsgs.length > 0;
+        const conflictBadge = hasSpectralConflict
+            ? `<span class="fixation-icon status-conflict" title="${conflictMsgs.join('; ')}"><i class="fa-solid fa-triangle-exclamation"></i> Spectral Conflict</span>`
+            : '';
 
         const warnBanner = !isFixationOk 
             ? `<div class="fixation-warn-banner"><i class="fa-solid fa-circle-exclamation"></i> ${combo.fixation.warnings.join(' ')}</div>`
+            : '';
+
+        const spectralBanner = hasSpectralConflict
+            ? `<div class="spectral-conflict-banner"><i class="fa-solid fa-triangle-exclamation"></i> <div><strong>Spectral Conflict Alert:</strong> ${conflictMsgs.join(' ')}</div></div>`
             : '';
 
         return `
@@ -1164,6 +1258,7 @@ ${message}
                         <span class="score-badge">Score: ${combo.score}</span>
                     </div>
                     <div class="combo-header-badges">
+                        ${conflictBadge}
                         ${fixationBadge}
                     </div>
                 </div>
@@ -1188,6 +1283,7 @@ ${message}
                     </table>
                 </div>
 
+                ${spectralBanner}
                 ${warnBanner}
             </div>
         `;
@@ -1220,6 +1316,11 @@ ${message}
             const score = combo.score;
             const fixStatus = combo.fixation.valid ? 'Compatible' : 'Conflict';
             const fixWarnings = combo.fixation.warnings.join('; ') || 'None';
+            const conflictMsgs = (combo.spectralConflicts && combo.spectralConflicts.length > 0)
+                ? combo.spectralConflicts
+                : ((combo.conflicts && combo.conflicts.length > 0) ? combo.conflicts.map(c => c.message || c) : []);
+            const spectralStatus = conflictMsgs.length > 0 ? 'Conflict' : 'Clean';
+            const spectralWarnings = conflictMsgs.join('; ') || 'None';
 
             // Primaries + Secondaries
             combo.primaries.forEach(p => {
@@ -1227,6 +1328,8 @@ ${message}
                     "Combination": comboNum,
                     "Score": score,
                     "Fixation Status": fixStatus,
+                    "Spectral Status": spectralStatus,
+                    "Spectral Conflicts": spectralWarnings,
                     "Channel": p.channel,
                     "Target / Marker": p.primary.target,
                     "Reagent Type": p.is_direct ? "Direct Conjugated Primary" : "Primary + Secondary",
@@ -1246,6 +1349,8 @@ ${message}
                     "Combination": comboNum,
                     "Score": score,
                     "Fixation Status": fixStatus,
+                    "Spectral Status": spectralStatus,
+                    "Spectral Conflicts": spectralWarnings,
                     "Channel": d.channel,
                     "Target / Marker": d.dye.target_structure ? `${d.dye.name} (${d.dye.target_structure})` : d.dye.name,
                     "Reagent Type": "Direct Counterstain / Dye",
@@ -1265,6 +1370,8 @@ ${message}
                     "Combination": comboNum,
                     "Score": score,
                     "Fixation Status": fixStatus,
+                    "Spectral Status": spectralStatus,
+                    "Spectral Conflicts": spectralWarnings,
                     "Channel": ch,
                     "Target / Marker": r.target ? `${r.target} (${repTag})` : repTag,
                     "Reagent Type": "Fluorescent Reporter Line",
@@ -1279,10 +1386,16 @@ ${message}
 
         // 2. Matrix Overview Sheet (One row per combination, columns for each channel)
         const matrixRows = combinations.map((combo, idx) => {
+            const conflictMsgs = (combo.spectralConflicts && combo.spectralConflicts.length > 0)
+                ? combo.spectralConflicts
+                : ((combo.conflicts && combo.conflicts.length > 0) ? combo.conflicts.map(c => c.message || c) : []);
+
             const row = {
                 "Combination": `Combo #${idx + 1}`,
                 "Score": combo.score,
-                "Fixation": combo.fixation.valid ? 'OK' : 'Conflict'
+                "Fixation": combo.fixation.valid ? 'OK' : 'Conflict',
+                "Spectral Status": conflictMsgs.length > 0 ? 'Conflict' : 'Clean',
+                "Spectral Conflicts": conflictMsgs.join('; ') || 'None'
             };
 
             channels.forEach(ch => {
@@ -1338,12 +1451,19 @@ ${message}
             const score = combo.score;
             const fixStatus = combo.fixation.valid ? 'Compatible' : 'Conflict';
             const fixWarnings = combo.fixation.warnings.join('; ') || 'None';
+            const conflictMsgs = (combo.spectralConflicts && combo.spectralConflicts.length > 0)
+                ? combo.spectralConflicts
+                : ((combo.conflicts && combo.conflicts.length > 0) ? combo.conflicts.map(c => c.message || c) : []);
+            const spectralStatus = conflictMsgs.length > 0 ? 'Conflict' : 'Clean';
+            const spectralWarnings = conflictMsgs.join('; ') || 'None';
 
             combo.primaries.forEach(p => {
                 detailedRows.push({
                     "Combination": comboNum,
                     "Score": score,
                     "Fixation Status": fixStatus,
+                    "Spectral Status": spectralStatus,
+                    "Spectral Conflicts": spectralWarnings,
                     "Channel": p.channel,
                     "Target / Marker": p.primary.target,
                     "Reagent Type": p.is_direct ? "Direct Conjugated Primary" : "Primary + Secondary",
@@ -1362,6 +1482,8 @@ ${message}
                     "Combination": comboNum,
                     "Score": score,
                     "Fixation Status": fixStatus,
+                    "Spectral Status": spectralStatus,
+                    "Spectral Conflicts": spectralWarnings,
                     "Channel": d.channel,
                     "Target / Marker": d.dye.target_structure ? `${d.dye.name} (${d.dye.target_structure})` : d.dye.name,
                     "Reagent Type": "Direct Counterstain / Dye",
@@ -1380,6 +1502,8 @@ ${message}
                     "Combination": comboNum,
                     "Score": score,
                     "Fixation Status": fixStatus,
+                    "Spectral Status": spectralStatus,
+                    "Spectral Conflicts": spectralWarnings,
                     "Channel": ch,
                     "Target / Marker": r.target ? `${r.target} (${repTag})` : repTag,
                     "Reagent Type": "Fluorescent Reporter Line",

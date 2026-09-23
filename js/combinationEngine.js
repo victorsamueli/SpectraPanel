@@ -31,36 +31,52 @@ const CombinationEngine = {
                         channels_used: [],
                         targets_requested: [],
                         targets_covered: reporters.map(r => r.target).filter(Boolean),
-                        assignedDyes: []
+                        assignedDyes: [],
+                        conflicts: []
                     };
 
-                    let comboValid = true;
                     for (let rep of reporters) {
                         const c = this.matchChannelForReagent(rep, configuredChannels, allowedChannels);
-                        if (c && this.isChannelAvailable(panelConfig.channels_used, c, application, allowedChannels)) {
+                        if (c) {
+                            if (panelConfig.channels_used.includes(c)) {
+                                panelConfig.conflicts.push({
+                                    type: 'spectral',
+                                    channel: c,
+                                    reagent: rep.reporter || rep.reporter_name || 'Reporter',
+                                    message: `Spectral Overlap in ${c} channel: ${rep.reporter || rep.reporter_name || 'Reporter'} shares channel with another reagent.`
+                                });
+                            }
                             panelConfig.channels_used.push(c);
-                        } else {
-                            comboValid = false;
-                            break;
                         }
                     }
 
                     for (let dye of dyes) {
                         const c = this.matchChannelForReagent(dye, configuredChannels, allowedChannels);
-                        if (c && this.isChannelAvailable(panelConfig.channels_used, c, application, allowedChannels)) {
+                        if (c) {
+                            if (panelConfig.channels_used.includes(c)) {
+                                panelConfig.conflicts.push({
+                                    type: 'spectral',
+                                    channel: c,
+                                    reagent: dye.name,
+                                    message: `Spectral Overlap in ${c} channel: ${dye.name} shares channel with another reagent.`
+                                });
+                            }
                             panelConfig.channels_used.push(c);
                             panelConfig.assignedDyes.push({ dye: dye, channel: c });
                         } else if (lockedDyes.includes(dye.id)) {
-                            comboValid = false;
-                            break;
+                            panelConfig.conflicts.push({
+                                type: 'spectral',
+                                channel: 'Unassigned',
+                                reagent: dye.name,
+                                message: `Channel Unmatched: ${dye.name} does not match any configured detection channel.`
+                            });
+                            panelConfig.assignedDyes.push({ dye: dye, channel: 'Unknown' });
                         }
                     }
 
-                    if (comboValid) {
-                        panelConfig.fixation = this.checkFixationCompatibility(panelConfig);
-                        panelConfig.score = 100;
-                        return { combinations: [panelConfig] };
-                    }
+                    panelConfig.fixation = this.checkFixationCompatibility(panelConfig);
+                    panelConfig.score = this.scoreCombination(panelConfig, application, config.scoringWeights);
+                    return { combinations: [panelConfig] };
                 }
                 return { combinations: [] };
             }
@@ -82,7 +98,7 @@ const CombinationEngine = {
             const lockedTargetsForAntibodies = lockedTargets.filter(t => !repTargetNames.includes(t.toLowerCase()));
             
             // 2. Generate target subsets (for partial panels)
-            let maxAvailableChannels = allowedChannels.length - reporters.length;
+            let maxAvailableChannels = allowedChannels.length;
             if (maxAvailableChannels < 1) maxAvailableChannels = 1;
 
             const targetSubsets = (targetsForAntibodies.length > 0)
@@ -120,25 +136,38 @@ const CombinationEngine = {
                         channels_used: [],
                         targets_requested: targets,
                         targets_covered: Array.from(new Set(coveredTargetsList)),
-                        assignedDyes: []
+                        assignedDyes: [],
+                        conflicts: []
                     };
 
                     let comboValid = true;
                     for (let rep of reporters) {
                         const c = this.matchChannelForReagent(rep, configuredChannels, allowedChannels);
-                        if (c && this.isChannelAvailable(panelConfig.channels_used, c, application, allowedChannels)) {
+                        if (c) {
+                            if (panelConfig.channels_used.includes(c)) {
+                                panelConfig.conflicts.push({
+                                    type: 'spectral',
+                                    channel: c,
+                                    reagent: rep.reporter || rep.reporter_name || 'Reporter',
+                                    message: `Spectral Overlap in ${c} channel: ${rep.reporter || rep.reporter_name || 'Reporter'} overlaps with another reagent.`
+                                });
+                            }
                             panelConfig.channels_used.push(c);
-                        } else {
-                            comboValid = false;
-                            break;
                         }
                     }
-                    if (!comboValid) continue;
 
                     for (let p of pCombo) {
                         if (p.conjugated_fluorophore) {
                             let c = this.matchChannelForReagent({ color: p.conjugated_color, name: p.conjugated_fluorophore }, configuredChannels, allowedChannels);
-                            if (c && this.isChannelAvailable(panelConfig.channels_used, c, application, allowedChannels)) {
+                            if (c) {
+                                if (panelConfig.channels_used.includes(c)) {
+                                    panelConfig.conflicts.push({
+                                        type: 'spectral',
+                                        channel: c,
+                                        reagent: p.target,
+                                        message: `Spectral Overlap in ${c} channel: ${p.target} (${p.conjugated_fluorophore}) overlaps with another reagent.`
+                                    });
+                                }
                                 panelConfig.primaries.push({ primary: p, secondary: null, channel: c, is_direct: true });
                                 panelConfig.channels_used.push(c);
                             } else {
@@ -153,38 +182,73 @@ const CombinationEngine = {
                                 panelConfig.primaries.push({ primary: p, secondary: bestSec, channel: c, is_direct: false });
                                 panelConfig.channels_used.push(c);
                             } else {
-                                comboValid = false;
-                                break;
+                                // Fallback allowing channel overlap if no conflict-free secondary exists
+                                let fallbackSecs = this.findCompatibleSecondaries(p, application, [], pCombo, allowedChannels, configuredChannels);
+                                if (fallbackSecs.length > 0) {
+                                    let bestSec = fallbackSecs[0];
+                                    let c = bestSec.channel_assigned;
+                                    panelConfig.conflicts.push({
+                                        type: 'spectral',
+                                        channel: c,
+                                        reagent: p.target,
+                                        message: `Spectral Overlap in ${c} channel: Secondary for ${p.target} overlaps with another reagent in ${c}.`
+                                    });
+                                    panelConfig.primaries.push({ primary: p, secondary: bestSec, channel: c, is_direct: false });
+                                    panelConfig.channels_used.push(c);
+                                } else {
+                                    comboValid = false;
+                                    break;
+                                }
                             }
                         }
                     }
 
                     if (!comboValid) continue;
 
-                    // Assign dyes
+                    // Assign dyes without stalling on channel collisions
                     let assignedDyes = [];
                     for (let dye of dyes) {
                         const c = this.matchChannelForReagent(dye, configuredChannels, allowedChannels);
-                        if (c && this.isChannelAvailable(panelConfig.channels_used, c, application, allowedChannels)) {
+                        if (c) {
+                            if (panelConfig.channels_used.includes(c)) {
+                                panelConfig.conflicts.push({
+                                    type: 'spectral',
+                                    channel: c,
+                                    reagent: dye.name,
+                                    message: `Spectral Overlap in ${c} channel: ${dye.name} overlaps with another reagent.`
+                                });
+                            }
                             panelConfig.channels_used.push(c);
                             assignedDyes.push({ dye: dye, channel: c });
                         } else if (lockedDyes.includes(dye.id)) {
-                            comboValid = false;
-                            break;
+                            panelConfig.conflicts.push({
+                                type: 'spectral',
+                                channel: 'Unassigned',
+                                reagent: dye.name,
+                                message: `Channel Unmatched: Locked dye ${dye.name} does not match any permitted channel.`
+                            });
+                            assignedDyes.push({ dye: dye, channel: 'Unknown' });
                         }
                     }
-                    if (!comboValid) continue; 
 
                     panelConfig.assignedDyes = assignedDyes;
                     panelConfig.fixation = this.checkFixationCompatibility(panelConfig);
-                    panelConfig.score = this.scoreCombination(panelConfig, application);
+                    panelConfig.score = this.scoreCombination(panelConfig, application, config.scoringWeights);
                     
                     fullCombos.push(panelConfig);
                 }
             }
 
-            // Sort by targets covered (desc), then score (desc)
+            // Sort by:
+            // 1. Conflict-free first (if any exist)
+            // 2. Targets covered (desc)
+            // 3. Score (desc)
             fullCombos.sort((a, b) => {
+                const aConflicts = (a.conflicts || []).length;
+                const bConflicts = (b.conflicts || []).length;
+                if (aConflicts === 0 && bConflicts > 0) return -1;
+                if (aConflicts > 0 && bConflicts === 0) return 1;
+
                 if (b.targets_covered.length !== a.targets_covered.length) {
                     return b.targets_covered.length - a.targets_covered.length;
                 }
@@ -429,25 +493,52 @@ const CombinationEngine = {
         return { valid: conflicts.length === 0, warnings: conflicts };
     },
 
-    scoreCombination(panel, application) {
+    scoreCombination(panel, application, userWeights) {
+        const weights = Object.assign({
+            coverage: 40,
+            crossAdsorption: 20,
+            hostDiversity: 15,
+            fixationPenalty: 30,
+            spectralPenalty: 35
+        }, userWeights || {});
+
         let score = 100;
-        
-        if (panel.fixation && !panel.fixation.valid) score -= 30;
 
+        // 1. Target Coverage
+        const requested = (panel.targets_requested || []).length;
+        const covered = (panel.targets_covered || []).length;
+        if (requested > 0 && covered < requested) {
+            const missingRatio = (requested - covered) / requested;
+            score -= Math.round(missingRatio * weights.coverage);
+        }
+
+        // 2. Fixation Compatibility Penalty
+        if (panel.fixation && !panel.fixation.valid) {
+            score -= weights.fixationPenalty;
+        }
+
+        // 3. Spectral Overlap / Channel Conflict Penalty
+        if (panel.conflicts && panel.conflicts.length > 0) {
+            score -= (panel.conflicts.length * weights.spectralPenalty);
+        }
+
+        // 4. Host Diversity Bonus
         let hosts = new Set((panel.primaries || []).map(p => (p && p.primary) ? p.primary.host : '').filter(Boolean));
-        score += (hosts.size * 5);
+        if (hosts.size > 1) {
+            score += Math.round((hosts.size - 1) * (weights.hostDiversity / 3));
+        }
 
+        // 5. Cross-Adsorption Specificity Bonus
         let otherHosts = Array.from(hosts);
         (panel.primaries || []).forEach(p => {
-            if (p && p.primary && p.secondary && p.secondary.cross_adsorbed) {
-                otherHosts.forEach(h => {
-                    if (h !== p.primary.host && p.secondary.cross_adsorbed.includes(h)) {
-                        score += 5; 
-                    }
-                });
+            if (p && p.primary && p.secondary) {
+                const text = ((p.secondary.cross_adsorbed || '') + ' ' + (p.secondary.comments || '')).toLowerCase();
+                if (text.includes('cross') || text.includes('adsorbed')) {
+                    score += Math.round(weights.crossAdsorption / 4);
+                }
             }
         });
 
-        return score;
+        return Math.max(0, Math.round(score));
     }
 };

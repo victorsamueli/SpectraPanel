@@ -288,7 +288,13 @@
                     <i class="fa-solid fa-book-open"></i> How to Use
                 </button>
                 <button class="tab-btn settings-tab-btn" data-settings-tab="channels">
-                    <i class="fa-solid fa-wave-square"></i> Microscopy Channel Configuration
+                    <i class="fa-solid fa-wave-square"></i> Microscopy Channels
+                </button>
+                <button class="tab-btn settings-tab-btn" data-settings-tab="scoring">
+                    <i class="fa-solid fa-scale-balanced"></i> Scoring Weights
+                </button>
+                <button class="tab-btn settings-tab-btn" data-settings-tab="gsheet">
+                    <i class="fa-solid fa-table"></i> Google Sheets Sync
                 </button>
             </div>
 
@@ -365,6 +371,148 @@
                     <div class="advanced-note mt-3">
                         <i class="fa-solid fa-circle-info"></i>
                         <span>Only the channels saved above will appear under <strong>3. Permitted Detection Channels</strong> in the designer, and generated combination tables will strictly reflect only the channels you check.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Configurable Scoring Weights -->
+            <div id="settings-tab-scoring" class="settings-tab-content mt-3" style="display:none;">
+                <div class="advanced-section">
+                    <div class="flex-between">
+                        <div>
+                            <h4>Combination Scoring Weightage & Priorities</h4>
+                            <p class="section-desc">Adjust the priority and penalty weights used by SpectraPanel's algorithm to rank generated panel combinations.</p>
+                        </div>
+                        <button type="button" id="btn-reset-scoring-weights" class="btn btn-outline btn-sm">
+                            <i class="fa-solid fa-rotate-left"></i> Reset Defaults
+                        </button>
+                    </div>
+
+                    <div class="scoring-weights-grid mt-3">
+                        <div class="weight-control-card">
+                            <div class="flex-between mb-1">
+                                <label for="weight-coverage" class="weight-label">
+                                    <i class="fa-solid fa-bullseye" style="color: var(--accent-blue);"></i> Target Coverage Priority
+                                </label>
+                                <span id="val-weight-coverage" class="weight-val-badge">40</span>
+                            </div>
+                            <input type="range" id="weight-coverage" class="form-range" min="0" max="100" value="40" step="5">
+                            <p class="weight-desc">Reward weight for panels covering 100% of your requested targets.</p>
+                        </div>
+
+                        <div class="weight-control-card">
+                            <div class="flex-between mb-1">
+                                <label for="weight-crossads" class="weight-label">
+                                    <i class="fa-solid fa-shield-halved" style="color: var(--accent-green);"></i> Cross-Adsorption Specificity
+                                </label>
+                                <span id="val-weight-crossads" class="weight-val-badge">20</span>
+                            </div>
+                            <input type="range" id="weight-crossads" class="form-range" min="0" max="100" value="20" step="5">
+                            <p class="weight-desc">Bonus for secondaries pre-adsorbed against the other host species in the panel.</p>
+                        </div>
+
+                        <div class="weight-control-card">
+                            <div class="flex-between mb-1">
+                                <label for="weight-hostdiv" class="weight-label">
+                                    <i class="fa-solid fa-dna" style="color: var(--accent-purple);"></i> Host Species Diversity
+                                </label>
+                                <span id="val-weight-hostdiv" class="weight-val-badge">15</span>
+                            </div>
+                            <input type="range" id="weight-hostdiv" class="form-range" min="0" max="100" value="15" step="5">
+                            <p class="weight-desc">Bonus for distributing antibodies across distinct animal host species per channel.</p>
+                        </div>
+
+                        <div class="weight-control-card">
+                            <div class="flex-between mb-1">
+                                <label for="weight-fixation" class="weight-label">
+                                    <i class="fa-solid fa-flask-vial" style="color: var(--accent-yellow);"></i> Fixation Conflict Penalty
+                                </label>
+                                <span id="val-weight-fixation" class="weight-val-badge">30</span>
+                            </div>
+                            <input type="range" id="weight-fixation" class="form-range" min="0" max="100" value="30" step="5">
+                            <p class="weight-desc">Points deducted when reagents require contradictory fixatives (e.g. Methanol vs PFA).</p>
+                        </div>
+
+                        <div class="weight-control-card">
+                            <div class="flex-between mb-1">
+                                <label for="weight-spectral" class="weight-label">
+                                    <i class="fa-solid fa-triangle-exclamation" style="color: var(--accent-red);"></i> Spectral Conflict Penalty
+                                </label>
+                                <span id="val-weight-spectral" class="weight-val-badge">35</span>
+                            </div>
+                            <input type="range" id="weight-spectral" class="form-range" min="0" max="100" value="35" step="5">
+                            <p class="weight-desc">Points deducted when reagents share the same detection channel (e.g. DAPI + Blue FP).</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 flex-between">
+                        <span id="scoring-weights-saved-notice" class="text-success" style="font-size: 0.775rem; display: none;">
+                            <i class="fa-solid fa-check"></i> Weights saved & applied!
+                        </span>
+                        <button type="button" id="btn-save-scoring-weights" class="btn btn-primary" style="margin-left: auto;">
+                            <i class="fa-solid fa-check"></i> Save & Apply Scoring Weights
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 4: Google Sheets Sync -->
+            <div id="settings-tab-gsheet" class="settings-tab-content mt-3" style="display:none;">
+                <div class="advanced-section">
+                    <div>
+                        <h4>Sync Inventory from Google Sheets</h4>
+                        <p class="section-desc">Connect a live Google Sheet workbook to load and synchronize your antibody and reagent inventory directly into SpectraPanel.</p>
+                    </div>
+
+                    <div class="gsheet-sync-card mt-3">
+                        <div class="form-group mb-2">
+                            <label for="gsheet-url-input" style="font-weight: 700; font-size: 0.8rem; color: var(--text-primary); display: block; margin-bottom: 0.35rem;">
+                                <i class="fa-brands fa-google-drive" style="color: #34d399;"></i> Google Sheet Share Link:
+                            </label>
+                            <input type="url" id="gsheet-url-input" class="form-input" placeholder="https://docs.google.com/spreadsheets/d/.../edit?usp=sharing" style="width: 100%;">
+                        </div>
+
+                        <div class="form-check mb-3" style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" id="gsheet-autosync-cb" class="form-checkbox" style="width: 16px; height: 16px; accent-color: var(--primary);">
+                            <label for="gsheet-autosync-cb" style="font-size: 0.775rem; color: var(--text-secondary); cursor: pointer;">
+                                Automatically sync and update inventory from this Google Sheet on application launch
+                            </label>
+                        </div>
+
+                        <div class="flex-between">
+                            <button type="button" id="btn-clear-gsheet" class="btn btn-outline-danger btn-sm" style="display: none;">
+                                <i class="fa-solid fa-link-slash"></i> Disconnect Sheet
+                            </button>
+                            <button type="button" id="btn-sync-gsheet" class="btn btn-primary" style="margin-left: auto;">
+                                <i class="fa-solid fa-arrows-rotate"></i> Sync & Load Inventory
+                            </button>
+                        </div>
+                        
+                        <div id="gsheet-status-msg" class="mt-2" style="font-size: 0.775rem; display: none;"></div>
+                    </div>
+
+                    <div class="guide-steps mt-3">
+                        <div class="guide-step">
+                            <div class="step-num"><i class="fa-solid fa-1"></i></div>
+                            <div>
+                                <h4 style="font-size: 0.85rem;">Google Sheet Formatting</h4>
+                                <p style="font-size: 0.775rem; color: var(--text-secondary); margin: 0;">Ensure your Google Sheet contains the standard tabs: <code>Primaries</code>, <code>Secondaries</code>, <code>Direct_Dyes</code>, and <code>Reporters</code> (matching our downloadable Excel template).</p>
+                            </div>
+                        </div>
+                        <div class="guide-step">
+                            <div class="step-num"><i class="fa-solid fa-2"></i></div>
+                            <div>
+                                <h4 style="font-size: 0.85rem;">Grant View Access</h4>
+                                <p style="font-size: 0.775rem; color: var(--text-secondary); margin: 0;">In Google Sheets, click <strong>Share</strong> (top-right) &rarr; under <em>General Access</em>, change to <strong>"Anyone with the link" (Viewer)</strong> &rarr; click <strong>Copy link</strong>.</p>
+                            </div>
+                        </div>
+                        <div class="guide-step">
+                            <div class="step-num"><i class="fa-solid fa-3"></i></div>
+                            <div>
+                                <h4 style="font-size: 0.85rem;">Paste & Sync</h4>
+                                <p style="font-size: 0.775rem; color: var(--text-secondary); margin: 0;">Paste the link into the box above and click <strong>Sync & Load Inventory</strong>. SpectraPanel will fetch all sheets directly via HTTPS without sending any data to external third-party servers.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

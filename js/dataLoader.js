@@ -48,6 +48,18 @@ const DataLoader = {
         window.db.reporters = [];
         window.db.channels = [];
 
+        // Check if Google Sheets auto-sync is configured
+        try {
+            const gsheetUrl = localStorage.getItem('spectrapanel_gsheet_url');
+            const gsheetAutoSync = localStorage.getItem('spectrapanel_gsheet_autosync');
+            if (gsheetUrl && gsheetAutoSync === 'true') {
+                this.loadFromGoogleSheets(gsheetUrl, true).catch(err => {
+                    console.warn("[SpectraPanel] Google Sheets background auto-sync error:", err);
+                });
+                return;
+            }
+        } catch (e) {}
+
         const statusEl = document.getElementById('upload-status');
         if (statusEl) {
             statusEl.innerText = "No Data Loaded";
@@ -68,6 +80,83 @@ const DataLoader = {
             localStorage.setItem('spectrapanel_inventory', JSON.stringify(payload));
         } catch (e) {
             console.warn("Could not persist inventory to localStorage", e);
+        }
+    },
+
+    extractGoogleSpreadsheetId(url) {
+        if (!url || typeof url !== 'string') return null;
+        const match = url.match(/\/spreadsheets\/(?:u\/\d+\/)?d\/([a-zA-Z0-9-_]+)/);
+        if (match && match[1]) return match[1];
+        if (/^[a-zA-Z0-9-_]{20,60}$/.test(url.trim())) return url.trim();
+        return null;
+    },
+
+    async loadFromGoogleSheets(shareUrl, autoSync = false) {
+        const statusEl = document.getElementById('upload-status');
+        const statusMsgEl = document.getElementById('gsheet-status-msg');
+        const clearBtn = document.getElementById('btn-clear-gsheet');
+
+        const sheetId = this.extractGoogleSpreadsheetId(shareUrl);
+        if (!sheetId) {
+            const err = "Invalid Google Sheets URL. Please copy the full share link (e.g. https://docs.google.com/spreadsheets/d/.../edit?usp=sharing).";
+            if (statusMsgEl) {
+                statusMsgEl.style.display = 'block';
+                statusMsgEl.style.color = 'var(--accent-red)';
+                statusMsgEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${err}`;
+            }
+            throw new Error(err);
+        }
+
+        const exportUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=xlsx`;
+
+        if (statusEl) {
+            statusEl.innerText = "Syncing Google Sheet...";
+            statusEl.className = "status-pill status-warn";
+        }
+        if (statusMsgEl) {
+            statusMsgEl.style.display = 'block';
+            statusMsgEl.style.color = 'var(--accent-blue)';
+            statusMsgEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Fetching workbook from Google Sheets...`;
+        }
+
+        try {
+            const response = await fetch(exportUrl);
+            if (!response.ok) {
+                throw new Error(`Google Sheets returned HTTP ${response.status}. Ensure sheet permissions are set to 'Anyone with the link can view'.`);
+            }
+            const arrayBuffer = await response.arrayBuffer();
+            const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
+            
+            this.parseMultiSheetWorkbook(workbook);
+
+            // Save sync preferences
+            try {
+                localStorage.setItem('spectrapanel_gsheet_url', shareUrl);
+                localStorage.setItem('spectrapanel_gsheet_autosync', autoSync ? 'true' : 'false');
+            } catch (e) {}
+
+            if (statusEl) {
+                statusEl.innerText = "Google Sheets Sync";
+                statusEl.className = "status-pill status-success";
+            }
+            if (statusMsgEl) {
+                statusMsgEl.style.color = 'var(--accent-green)';
+                statusMsgEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Successfully synchronized with Google Sheets!`;
+            }
+            if (clearBtn) clearBtn.style.display = 'inline-flex';
+
+            return true;
+        } catch (error) {
+            console.error("[SpectraPanel] Google Sheets sync error:", error);
+            if (statusEl) {
+                statusEl.innerText = "Sync Failed";
+                statusEl.className = "status-pill status-error";
+            }
+            if (statusMsgEl) {
+                statusMsgEl.style.color = 'var(--accent-red)';
+                statusMsgEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${error.message || "Failed to sync Google Sheet"}`;
+            }
+            throw error;
         }
     },
 
