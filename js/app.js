@@ -326,6 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 dyes: selectedConfig.dyes,
                 lockedTargets: selectedConfig.lockedTargets,
                 lockedDyes: selectedConfig.lockedDyes,
+                lockedReporters: selectedConfig.lockedReporters || [],
                 scoringWeights: UI.getScoringWeights ? UI.getScoringWeights() : undefined
             };
 

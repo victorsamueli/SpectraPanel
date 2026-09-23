@@ -1083,6 +1083,7 @@ ${message}
         const reporters = [];
         const lockedTargets = [];
         const lockedDyes = [];
+        const lockedReporters = [];
 
         this.state.selectedReagents.forEach(r => {
             if (r.type === 'Antibody') {
@@ -1100,11 +1101,14 @@ ${message}
                     const rName = rep.target ? `${rep.target} (${repTag})` : repTag;
                     return rName === r.name;
                 });
-                if (repObj) reporters.push(repObj);
+                if (repObj) {
+                    reporters.push(repObj);
+                    if (r.locked) lockedReporters.push(repObj.id || repObj.reporter);
+                }
             }
         });
 
-        return { targets, dyes, reporters, lockedTargets, lockedDyes };
+        return { targets, dyes, reporters, lockedTargets, lockedDyes, lockedReporters };
     },
 
     /* =========================================================
@@ -1156,12 +1160,27 @@ ${message}
             }
         }
 
+        let exclusionNoticeHtml = '';
+        if (results.excludedReagents && results.excludedReagents.length > 0) {
+            const listItems = results.excludedReagents.map(item => `<li><strong>${item.name}</strong> (${item.channel}): ${item.reason}</li>`).join('');
+            exclusionNoticeHtml = `
+                <div class="alert-excluded-notice glass-panel">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <div>
+                        <div class="notice-title">Channel Reservation Notice</div>
+                        <div style="font-size: 0.775rem;">The following reagent${results.excludedReagents.length > 1 ? 's were' : ' was'} omitted from generated combinations because ${results.excludedReagents.length > 1 ? 'their' : 'its'} detection channel is locked by another reagent:</div>
+                        <ul>${listItems}</ul>
+                    </div>
+                </div>
+            `;
+        }
+
         let html = '';
         results.combinations.forEach((combo, index) => {
             html += this.renderCombinationCard(combo, index, config);
         });
 
-        container.innerHTML = html;
+        container.innerHTML = exclusionNoticeHtml + html;
     },
 
     renderCombinationCard(combo, index, config) {
@@ -1217,10 +1236,9 @@ ${message}
         channels.forEach(ch => {
             const items = channelMap[ch];
             if (items && items.length > 0) {
-                const overlapBadge = items.length > 1 ? `<div class="ch-overlap-pill"><i class="fa-solid fa-triangle-exclamation"></i> Shared (${items.length})</div>` : '';
-                targetRow += `<td>${items.map(i => i.target).join('<br>+<br>')}${overlapBadge}</td>`;
-                priRow += `<td>${items.map(i => i.pri).join('<br>+<br>')}</td>`;
-                secRow += `<td>${items.map(i => i.sec).join('<br>+<br>')}</td>`;
+                targetRow += `<td>${items[0].target}</td>`;
+                priRow += `<td>${items[0].pri}</td>`;
+                secRow += `<td>${items[0].sec}</td>`;
             } else {
                 targetRow += `<td style="color: var(--text-muted);">—</td>`;
                 priRow += `<td style="color: var(--text-muted);">—</td>`;
@@ -1233,21 +1251,8 @@ ${message}
             ? `<span class="fixation-icon status-ok" title="Fixation compatible"><i class="fa-solid fa-circle-check"></i> Fixation OK</span>`
             : `<span class="fixation-icon status-warn" title="${combo.fixation.warnings.join(' | ')}"><i class="fa-solid fa-triangle-exclamation"></i> Fixation Conflict</span>`;
 
-        const conflictMsgs = (combo.spectralConflicts && combo.spectralConflicts.length > 0)
-            ? combo.spectralConflicts
-            : ((combo.conflicts && combo.conflicts.length > 0) ? combo.conflicts.map(c => c.message || c) : []);
-
-        const hasSpectralConflict = conflictMsgs.length > 0;
-        const conflictBadge = hasSpectralConflict
-            ? `<span class="fixation-icon status-conflict" title="${conflictMsgs.join('; ')}"><i class="fa-solid fa-triangle-exclamation"></i> Spectral Conflict</span>`
-            : '';
-
         const warnBanner = !isFixationOk 
             ? `<div class="fixation-warn-banner"><i class="fa-solid fa-circle-exclamation"></i> ${combo.fixation.warnings.join(' ')}</div>`
-            : '';
-
-        const spectralBanner = hasSpectralConflict
-            ? `<div class="spectral-conflict-banner"><i class="fa-solid fa-triangle-exclamation"></i> <div><strong>Spectral Conflict Alert:</strong> ${conflictMsgs.join(' ')}</div></div>`
             : '';
 
         return `
@@ -1258,7 +1263,6 @@ ${message}
                         <span class="score-badge">Score: ${combo.score}</span>
                     </div>
                     <div class="combo-header-badges">
-                        ${conflictBadge}
                         ${fixationBadge}
                     </div>
                 </div>
@@ -1283,7 +1287,6 @@ ${message}
                     </table>
                 </div>
 
-                ${spectralBanner}
                 ${warnBanner}
             </div>
         `;
@@ -1316,11 +1319,6 @@ ${message}
             const score = combo.score;
             const fixStatus = combo.fixation.valid ? 'Compatible' : 'Conflict';
             const fixWarnings = combo.fixation.warnings.join('; ') || 'None';
-            const conflictMsgs = (combo.spectralConflicts && combo.spectralConflicts.length > 0)
-                ? combo.spectralConflicts
-                : ((combo.conflicts && combo.conflicts.length > 0) ? combo.conflicts.map(c => c.message || c) : []);
-            const spectralStatus = conflictMsgs.length > 0 ? 'Conflict' : 'Clean';
-            const spectralWarnings = conflictMsgs.join('; ') || 'None';
 
             // Primaries + Secondaries
             combo.primaries.forEach(p => {
@@ -1328,8 +1326,6 @@ ${message}
                     "Combination": comboNum,
                     "Score": score,
                     "Fixation Status": fixStatus,
-                    "Spectral Status": spectralStatus,
-                    "Spectral Conflicts": spectralWarnings,
                     "Channel": p.channel,
                     "Target / Marker": p.primary.target,
                     "Reagent Type": p.is_direct ? "Direct Conjugated Primary" : "Primary + Secondary",
@@ -1349,8 +1345,6 @@ ${message}
                     "Combination": comboNum,
                     "Score": score,
                     "Fixation Status": fixStatus,
-                    "Spectral Status": spectralStatus,
-                    "Spectral Conflicts": spectralWarnings,
                     "Channel": d.channel,
                     "Target / Marker": d.dye.target_structure ? `${d.dye.name} (${d.dye.target_structure})` : d.dye.name,
                     "Reagent Type": "Direct Counterstain / Dye",
@@ -1370,8 +1364,6 @@ ${message}
                     "Combination": comboNum,
                     "Score": score,
                     "Fixation Status": fixStatus,
-                    "Spectral Status": spectralStatus,
-                    "Spectral Conflicts": spectralWarnings,
                     "Channel": ch,
                     "Target / Marker": r.target ? `${r.target} (${repTag})` : repTag,
                     "Reagent Type": "Fluorescent Reporter Line",
@@ -1386,16 +1378,10 @@ ${message}
 
         // 2. Matrix Overview Sheet (One row per combination, columns for each channel)
         const matrixRows = combinations.map((combo, idx) => {
-            const conflictMsgs = (combo.spectralConflicts && combo.spectralConflicts.length > 0)
-                ? combo.spectralConflicts
-                : ((combo.conflicts && combo.conflicts.length > 0) ? combo.conflicts.map(c => c.message || c) : []);
-
             const row = {
                 "Combination": `Combo #${idx + 1}`,
                 "Score": combo.score,
-                "Fixation": combo.fixation.valid ? 'OK' : 'Conflict',
-                "Spectral Status": conflictMsgs.length > 0 ? 'Conflict' : 'Clean',
-                "Spectral Conflicts": conflictMsgs.join('; ') || 'None'
+                "Fixation": combo.fixation.valid ? 'OK' : 'Conflict'
             };
 
             channels.forEach(ch => {
@@ -1429,6 +1415,15 @@ ${message}
         const wsMatrix = XLSX.utils.json_to_sheet(matrixRows);
         XLSX.utils.book_append_sheet(wb, wsMatrix, "Matrix_Overview");
 
+        if (this.state.lastResults && this.state.lastResults.excludedReagents && this.state.lastResults.excludedReagents.length > 0) {
+            const wsExcl = XLSX.utils.json_to_sheet(this.state.lastResults.excludedReagents.map(e => ({
+                "Reagent": e.name,
+                "Channel": e.channel,
+                "Exclusion Reason": e.reason
+            })));
+            XLSX.utils.book_append_sheet(wb, wsExcl, "Excluded_Reagents");
+        }
+
         const dateStr = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 15);
         XLSX.writeFile(wb, `SpectraPanel_Combinations_${dateStr}.xlsx`);
     },
@@ -1451,19 +1446,12 @@ ${message}
             const score = combo.score;
             const fixStatus = combo.fixation.valid ? 'Compatible' : 'Conflict';
             const fixWarnings = combo.fixation.warnings.join('; ') || 'None';
-            const conflictMsgs = (combo.spectralConflicts && combo.spectralConflicts.length > 0)
-                ? combo.spectralConflicts
-                : ((combo.conflicts && combo.conflicts.length > 0) ? combo.conflicts.map(c => c.message || c) : []);
-            const spectralStatus = conflictMsgs.length > 0 ? 'Conflict' : 'Clean';
-            const spectralWarnings = conflictMsgs.join('; ') || 'None';
 
             combo.primaries.forEach(p => {
                 detailedRows.push({
                     "Combination": comboNum,
                     "Score": score,
                     "Fixation Status": fixStatus,
-                    "Spectral Status": spectralStatus,
-                    "Spectral Conflicts": spectralWarnings,
                     "Channel": p.channel,
                     "Target / Marker": p.primary.target,
                     "Reagent Type": p.is_direct ? "Direct Conjugated Primary" : "Primary + Secondary",
@@ -1482,8 +1470,6 @@ ${message}
                     "Combination": comboNum,
                     "Score": score,
                     "Fixation Status": fixStatus,
-                    "Spectral Status": spectralStatus,
-                    "Spectral Conflicts": spectralWarnings,
                     "Channel": d.channel,
                     "Target / Marker": d.dye.target_structure ? `${d.dye.name} (${d.dye.target_structure})` : d.dye.name,
                     "Reagent Type": "Direct Counterstain / Dye",
@@ -1502,8 +1488,6 @@ ${message}
                     "Combination": comboNum,
                     "Score": score,
                     "Fixation Status": fixStatus,
-                    "Spectral Status": spectralStatus,
-                    "Spectral Conflicts": spectralWarnings,
                     "Channel": ch,
                     "Target / Marker": r.target ? `${r.target} (${repTag})` : repTag,
                     "Reagent Type": "Fluorescent Reporter Line",

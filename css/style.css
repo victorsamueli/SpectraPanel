@@ -1149,40 +1149,42 @@ textarea.form-input {
     padding: 1rem;
 }
 
-/* Spectral Conflict Badges & Banners */
-.fixation-icon.status-conflict {
-    background: rgba(248, 113, 113, 0.15);
-    color: var(--accent-red);
-    border: 1px solid rgba(248, 113, 113, 0.3);
-    padding: 0.15rem 0.5rem;
-    border-radius: 10px;
-    font-weight: 700;
-    font-size: 0.7rem;
-}
-
-.spectral-conflict-banner {
-    background: rgba(248, 113, 113, 0.1);
-    border: 1px solid rgba(248, 113, 113, 0.3);
+/* Exclusion & Channel Reservation Notices */
+.alert-excluded-notice {
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.35);
     border-radius: var(--radius-sm);
-    padding: 0.4rem 0.65rem;
-    font-size: 0.725rem;
-    color: #fca5a5;
-    margin-top: 0.45rem;
+    padding: 0.65rem 0.9rem;
+    font-size: 0.8rem;
+    color: #fde68a;
+    margin-bottom: 0.85rem;
     display: flex;
     align-items: flex-start;
-    gap: 0.4rem;
+    gap: 0.6rem;
+    line-height: 1.45;
 }
 
-.ch-overlap-pill {
-    display: inline-block;
-    padding: 0.1rem 0.35rem;
-    border-radius: 4px;
-    background: rgba(248, 113, 113, 0.2);
-    border: 1px solid rgba(248, 113, 113, 0.4);
-    color: #fca5a5;
-    font-size: 0.65rem;
+.alert-excluded-notice i {
+    color: var(--accent-yellow);
+    font-size: 1rem;
+    margin-top: 0.1rem;
+    flex-shrink: 0;
+}
+
+.alert-excluded-notice .notice-title {
     font-weight: 700;
-    margin-top: 0.25rem;
+    color: #fbbf24;
+    margin-bottom: 0.2rem;
+}
+
+.alert-excluded-notice ul {
+    margin: 0.25rem 0 0 1.1rem;
+    padding: 0;
+}
+
+.alert-excluded-notice li {
+    font-size: 0.775rem;
+    margin-bottom: 0.15rem;
 }
 
 /* Modals */

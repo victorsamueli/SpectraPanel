@@ -9,257 +9,383 @@ const CombinationEngine = {
 
     generateCombinations(config) {
         try {
-            // config: { application, mode, allowedChannels, configuredChannels, reporters, targets, dyes, lockedTargets, lockedDyes }
+            // config: { application, mode, allowedChannels, configuredChannels, reporters, targets, dyes, lockedTargets, lockedDyes, lockedReporters, scoringWeights }
             const application = config.application || 'ICC';
             const targets = config.targets || [];
             const lockedTargets = config.lockedTargets || [];
             const reporters = config.reporters || [];
             const dyes = config.dyes || [];
             const lockedDyes = config.lockedDyes || [];
+            const lockedReporters = config.lockedReporters || [];
             const allowedChannels = (config.allowedChannels && config.allowedChannels.length > 0)
                 ? config.allowedChannels
                 : ['Blue', 'Green', 'Red', 'Far-Red'];
             const configuredChannels = config.configuredChannels || [];
+            const excludedReagents = [];
 
-            // Case: No primary antibodies selected, but dyes or reporters are selected
-            if (targets.length === 0) {
-                if (reporters.length > 0 || dyes.length > 0) {
-                    const panelConfig = {
-                        primaries: [],
-                        reporters: reporters,
-                        dyes: dyes,
-                        channels_used: [],
-                        targets_requested: [],
-                        targets_covered: reporters.map(r => r.target).filter(Boolean),
-                        assignedDyes: [],
-                        conflicts: []
-                    };
-
-                    for (let rep of reporters) {
-                        const c = this.matchChannelForReagent(rep, configuredChannels, allowedChannels);
-                        if (c) {
-                            if (panelConfig.channels_used.includes(c)) {
-                                panelConfig.conflicts.push({
-                                    type: 'spectral',
-                                    channel: c,
-                                    reagent: rep.reporter || rep.reporter_name || 'Reporter',
-                                    message: `Spectral Overlap in ${c} channel: ${rep.reporter || rep.reporter_name || 'Reporter'} shares channel with another reagent.`
-                                });
-                            }
-                            panelConfig.channels_used.push(c);
-                        }
-                    }
-
-                    for (let dye of dyes) {
-                        const c = this.matchChannelForReagent(dye, configuredChannels, allowedChannels);
-                        if (c) {
-                            if (panelConfig.channels_used.includes(c)) {
-                                panelConfig.conflicts.push({
-                                    type: 'spectral',
-                                    channel: c,
-                                    reagent: dye.name,
-                                    message: `Spectral Overlap in ${c} channel: ${dye.name} shares channel with another reagent.`
-                                });
-                            }
-                            panelConfig.channels_used.push(c);
-                            panelConfig.assignedDyes.push({ dye: dye, channel: c });
-                        } else if (lockedDyes.includes(dye.id)) {
-                            panelConfig.conflicts.push({
-                                type: 'spectral',
-                                channel: 'Unassigned',
-                                reagent: dye.name,
-                                message: `Channel Unmatched: ${dye.name} does not match any configured detection channel.`
-                            });
-                            panelConfig.assignedDyes.push({ dye: dye, channel: 'Unknown' });
-                        }
-                    }
-
-                    panelConfig.fixation = this.checkFixationCompatibility(panelConfig);
-                    panelConfig.score = this.scoreCombination(panelConfig, application, config.scoringWeights);
-                    return { combinations: [panelConfig] };
-                }
-                return { combinations: [] };
+            // 1. Map all dyes and reporters to their detection channels
+            const dyeChannelMap = new Map();
+            for (let d of dyes) {
+                const ch = this.matchChannelForReagent(d, configuredChannels, allowedChannels);
+                dyeChannelMap.set(d, ch);
             }
 
-            // 1. Filter primaries validated for this application
+            const repChannelMap = new Map();
+            for (let r of reporters) {
+                const ch = this.matchChannelForReagent(r, configuredChannels, allowedChannels);
+                repChannelMap.set(r, ch);
+            }
+
+            // 2. Direct Locked-on-Locked Check:
+            // Check if two or more locked reagents claim the same detection channel
+            const lockedByChannel = {};
+            for (let d of dyes) {
+                if (lockedDyes.includes(d.id)) {
+                    const ch = dyeChannelMap.get(d);
+                    if (ch) {
+                        if (!lockedByChannel[ch]) lockedByChannel[ch] = [];
+                        lockedByChannel[ch].push({ name: d.name, type: 'Dye', item: d });
+                    }
+                }
+            }
+            for (let r of reporters) {
+                const rId = r.id || r.reporter || r.reporter_name;
+                if (lockedReporters.includes(rId) || lockedReporters.includes(r.reporter) || lockedReporters.includes(r.target)) {
+                    const ch = repChannelMap.get(r);
+                    if (ch) {
+                        const repTitle = r.target ? `${r.target} (${r.reporter || r.reporter_name})` : (r.reporter || r.reporter_name || 'Reporter');
+                        if (!lockedByChannel[ch]) lockedByChannel[ch] = [];
+                        lockedByChannel[ch].push({ name: repTitle, type: 'Reporter', item: r });
+                    }
+                }
+            }
+
+            for (let ch in lockedByChannel) {
+                if (lockedByChannel[ch].length > 1) {
+                    const names = lockedByChannel[ch].map(x => `"${x.name}"`).join(' and ');
+                    return {
+                        combinations: [],
+                        excludedReagents: [],
+                        error: `Direct Conflict: Both ${names} are locked into the ${ch} channel. Two locked reagents cannot share the same detection channel. Please unlock one of them to generate valid combinations.`
+                    };
+                }
+            }
+
+            // 3. Channel Reservation & Exclusion of Unlocked Reagents in Locked Channels
+            const reservedChannels = new Set(Object.keys(lockedByChannel)); // e.g. Set(['Blue'])
+
+            const activeDyes = [];
+            for (let d of dyes) {
+                const isLocked = lockedDyes.includes(d.id);
+                const ch = dyeChannelMap.get(d);
+                if (isLocked) {
+                    activeDyes.push(d);
+                } else {
+                    if (ch && reservedChannels.has(ch)) {
+                        const lockerName = lockedByChannel[ch][0].name;
+                        excludedReagents.push({
+                            name: d.name,
+                            channel: ch,
+                            reason: `The ${ch} channel is reserved by locked "${lockerName}".`
+                        });
+                    } else if (ch) {
+                        activeDyes.push(d);
+                    }
+                }
+            }
+
+            const activeReporters = [];
+            for (let r of reporters) {
+                const rId = r.id || r.reporter || r.reporter_name;
+                const isLocked = lockedReporters.includes(rId) || lockedReporters.includes(r.reporter) || lockedReporters.includes(r.target);
+                const ch = repChannelMap.get(r);
+                const repTitle = r.target ? `${r.target} (${r.reporter || r.reporter_name})` : (r.reporter || r.reporter_name || 'Reporter');
+                if (isLocked) {
+                    activeReporters.push(r);
+                } else {
+                    if (ch && reservedChannels.has(ch)) {
+                        const lockerName = lockedByChannel[ch][0].name;
+                        excludedReagents.push({
+                            name: repTitle,
+                            channel: ch,
+                            reason: `The ${ch} channel is reserved by locked "${lockerName}".`
+                        });
+                    } else if (ch) {
+                        activeReporters.push(r);
+                    }
+                }
+            }
+
+            // 4. Group Direct Reagents (Dyes and Reporters) by Channel for Conflict-Free Branching
+            const directByChannel = {};
+            for (let ch of allowedChannels) {
+                directByChannel[ch] = [];
+            }
+
+            for (let d of activeDyes) {
+                const ch = dyeChannelMap.get(d);
+                if (ch && directByChannel[ch]) {
+                    directByChannel[ch].push({ type: 'Dye', item: d, channel: ch, locked: lockedDyes.includes(d.id) });
+                }
+            }
+
+            for (let r of activeReporters) {
+                const ch = repChannelMap.get(r);
+                const rId = r.id || r.reporter || r.reporter_name;
+                const isLocked = lockedReporters.includes(rId) || lockedReporters.includes(r.reporter) || lockedReporters.includes(r.target);
+                if (ch && directByChannel[ch]) {
+                    directByChannel[ch].push({ type: 'Reporter', item: r, channel: ch, locked: isLocked });
+                }
+            }
+
+            // Build direct reagent combinations across channels (at most one reagent per channel)
+            let directBranches = [ { channels: {}, assignedDyes: [], reporters: [] } ];
+
+            for (let ch of allowedChannels) {
+                const items = directByChannel[ch] || [];
+                if (items.length === 0) continue; // Free channel
+
+                const lockedItem = items.find(i => i.locked);
+                if (lockedItem) {
+                    // Locked item must be in all branches
+                    for (let branch of directBranches) {
+                        branch.channels[ch] = lockedItem;
+                        if (lockedItem.type === 'Dye') {
+                            branch.assignedDyes.push({ dye: lockedItem.item, channel: ch });
+                        } else {
+                            branch.reporters.push(lockedItem.item);
+                        }
+                    }
+                } else {
+                    // Competing or optional unlocked items:
+                    // Branch for each candidate reagent, plus an open branch if antibody targets need channels
+                    const newBranches = [];
+                    for (let branch of directBranches) {
+                        for (let cand of items) {
+                            const bCopy = {
+                                channels: { ...branch.channels, [ch]: cand },
+                                assignedDyes: cand.type === 'Dye' ? [...branch.assignedDyes, { dye: cand.item, channel: ch }] : [...branch.assignedDyes],
+                                reporters: cand.type === 'Reporter' ? [...branch.reporters, cand.item] : [...branch.reporters]
+                            };
+                            newBranches.push(bCopy);
+                        }
+                        if (targets.length > 0) {
+                            newBranches.push({
+                                channels: { ...branch.channels },
+                                assignedDyes: [...branch.assignedDyes],
+                                reporters: [...branch.reporters]
+                            });
+                        }
+                    }
+                    directBranches = newBranches;
+                }
+            }
+
+            // 5. Filter Primaries validated for this application & mode
             const allPrimaries = (window.db && Array.isArray(window.db.primaries)) ? window.db.primaries : [];
             let validPrimaries = allPrimaries.filter(p => this.hasApplication(p.applications, application));
-            
-            // 1b. If live-cell mode, filter further
             if (config.mode === 'Live') {
                 validPrimaries = validPrimaries.filter(p => p.live_cell_compatible === 'Yes');
             }
 
             let fullCombos = [];
+            const seenComboSignatures = new Set();
 
-            // Detect any targets already covered by selected reporter lines
-            const repTargetNames = reporters.map(r => (r.target || '').toLowerCase()).filter(Boolean);
-            const targetsForAntibodies = targets.filter(t => !repTargetNames.includes(t.toLowerCase()));
-            const lockedTargetsForAntibodies = lockedTargets.filter(t => !repTargetNames.includes(t.toLowerCase()));
-            
-            // 2. Generate target subsets (for partial panels)
-            let maxAvailableChannels = allowedChannels.length;
-            if (maxAvailableChannels < 1) maxAvailableChannels = 1;
+            // 6. For each directBranch, assign primary/secondary antibody combinations into available channels
+            for (let branch of directBranches) {
+                const usedChannels = Object.keys(branch.channels);
+                const channelsAvailableForAntibodies = allowedChannels.filter(c => !usedChannels.includes(c));
 
-            const targetSubsets = (targetsForAntibodies.length > 0)
-                ? this.generateSubsets(targetsForAntibodies, lockedTargetsForAntibodies, maxAvailableChannels)
-                : [[]];
-            
-            for (let subset of targetSubsets) {
-                let targetPrimariesList = [];
-                let subsetValid = true;
-                for (let target of subset) {
-                    let matches = validPrimaries.filter(p => p.target && p.target.toLowerCase() === target.toLowerCase());
-                    if (matches.length === 0) {
-                        subsetValid = false;
-                        break;
-                    }
-                    targetPrimariesList.push(matches);
-                }
-                if (!subsetValid && subset.length > 0) continue;
+                // Targets covered by reporters in this branch
+                const coveredByRep = branch.reporters.map(r => r.target).filter(Boolean);
+                const targetsToStain = targets.filter(t => !coveredByRep.some(ct => ct.toLowerCase() === t.toLowerCase()));
+                const lockedTargetsToStain = lockedTargets.filter(t => !coveredByRep.some(ct => ct.toLowerCase() === t.toLowerCase()));
 
-                let primaryCombos = subset.length > 0
-                    ? this.cartesianProduct(targetPrimariesList).filter(combo => this.checkPrimaryConflict(combo, application))
-                    : [[]];
-
-                for (let pCombo of primaryCombos) {
-                    // Combine antibody covered targets + reporter covered targets
-                    const coveredTargetsList = [
-                        ...subset,
-                        ...reporters.map(r => r.target).filter(t => t && targets.some(req => req.toLowerCase() === t.toLowerCase()))
-                    ];
-
-                    let panelConfig = {
-                        primaries: [], 
-                        reporters: reporters,
-                        dyes: dyes,
-                        channels_used: [],
+                if (targetsToStain.length === 0) {
+                    // No antibodies needed! This branch is complete
+                    const coveredList = Array.from(new Set([...coveredByRep]));
+                    const panel = {
+                        primaries: [],
+                        reporters: branch.reporters,
+                        assignedDyes: branch.assignedDyes,
+                        channels_used: usedChannels,
                         targets_requested: targets,
-                        targets_covered: Array.from(new Set(coveredTargetsList)),
-                        assignedDyes: [],
+                        targets_covered: coveredList,
                         conflicts: []
                     };
+                    panel.fixation = this.checkFixationCompatibility(panel);
+                    panel.score = this.scoreCombination(panel, application, config.scoringWeights);
 
-                    let comboValid = true;
-                    for (let rep of reporters) {
-                        const c = this.matchChannelForReagent(rep, configuredChannels, allowedChannels);
-                        if (c) {
-                            if (panelConfig.channels_used.includes(c)) {
-                                panelConfig.conflicts.push({
-                                    type: 'spectral',
-                                    channel: c,
-                                    reagent: rep.reporter || rep.reporter_name || 'Reporter',
-                                    message: `Spectral Overlap in ${c} channel: ${rep.reporter || rep.reporter_name || 'Reporter'} overlaps with another reagent.`
-                                });
+                    const sig = this.getComboSignature(panel);
+                    if (!seenComboSignatures.has(sig)) {
+                        seenComboSignatures.add(sig);
+                        fullCombos.push(panel);
+                    }
+                    continue;
+                }
+
+                if (channelsAvailableForAntibodies.length === 0) {
+                    continue;
+                }
+
+                const maxChannels = channelsAvailableForAntibodies.length;
+                const targetSubsets = this.generateSubsets(targetsToStain, lockedTargetsToStain, maxChannels);
+
+                for (let subset of targetSubsets) {
+                    let targetPrimariesList = [];
+                    let subsetValid = true;
+                    for (let target of subset) {
+                        let matches = validPrimaries.filter(p => p.target && p.target.toLowerCase() === target.toLowerCase());
+                        if (matches.length === 0) {
+                            subsetValid = false;
+                            break;
+                        }
+                        targetPrimariesList.push(matches);
+                    }
+                    if (!subsetValid || targetPrimariesList.length === 0) continue;
+
+                    let primaryCombos = this.cartesianProduct(targetPrimariesList).filter(combo => this.checkPrimaryConflict(combo, application));
+
+                    for (let pCombo of primaryCombos) {
+                        const assignments = this.assignSecondariesToPrimaries(pCombo, application, usedChannels, allowedChannels, configuredChannels);
+
+                        for (let assignment of assignments) {
+                            const assignedChannels = assignment.map(a => a.channel);
+                            const totalChannelsUsed = [...usedChannels, ...assignedChannels];
+                            const coveredTargetsList = [
+                                ...subset,
+                                ...coveredByRep
+                            ];
+
+                            const panel = {
+                                primaries: assignment,
+                                reporters: branch.reporters,
+                                assignedDyes: branch.assignedDyes,
+                                channels_used: totalChannelsUsed,
+                                targets_requested: targets,
+                                targets_covered: Array.from(new Set(coveredTargetsList)),
+                                conflicts: []
+                            };
+
+                            panel.fixation = this.checkFixationCompatibility(panel);
+                            panel.score = this.scoreCombination(panel, application, config.scoringWeights);
+
+                            const sig = this.getComboSignature(panel);
+                            if (!seenComboSignatures.has(sig)) {
+                                seenComboSignatures.add(sig);
+                                fullCombos.push(panel);
                             }
-                            panelConfig.channels_used.push(c);
                         }
                     }
-
-                    for (let p of pCombo) {
-                        if (p.conjugated_fluorophore) {
-                            let c = this.matchChannelForReagent({ color: p.conjugated_color, name: p.conjugated_fluorophore }, configuredChannels, allowedChannels);
-                            if (c) {
-                                if (panelConfig.channels_used.includes(c)) {
-                                    panelConfig.conflicts.push({
-                                        type: 'spectral',
-                                        channel: c,
-                                        reagent: p.target,
-                                        message: `Spectral Overlap in ${c} channel: ${p.target} (${p.conjugated_fluorophore}) overlaps with another reagent.`
-                                    });
-                                }
-                                panelConfig.primaries.push({ primary: p, secondary: null, channel: c, is_direct: true });
-                                panelConfig.channels_used.push(c);
-                            } else {
-                                comboValid = false;
-                                break;
-                            }
-                        } else {
-                            let validSecs = this.findCompatibleSecondaries(p, application, panelConfig.channels_used, pCombo, allowedChannels, configuredChannels);
-                            if (validSecs.length > 0) {
-                                let bestSec = validSecs[0]; 
-                                let c = bestSec.channel_assigned;
-                                panelConfig.primaries.push({ primary: p, secondary: bestSec, channel: c, is_direct: false });
-                                panelConfig.channels_used.push(c);
-                            } else {
-                                // Fallback allowing channel overlap if no conflict-free secondary exists
-                                let fallbackSecs = this.findCompatibleSecondaries(p, application, [], pCombo, allowedChannels, configuredChannels);
-                                if (fallbackSecs.length > 0) {
-                                    let bestSec = fallbackSecs[0];
-                                    let c = bestSec.channel_assigned;
-                                    panelConfig.conflicts.push({
-                                        type: 'spectral',
-                                        channel: c,
-                                        reagent: p.target,
-                                        message: `Spectral Overlap in ${c} channel: Secondary for ${p.target} overlaps with another reagent in ${c}.`
-                                    });
-                                    panelConfig.primaries.push({ primary: p, secondary: bestSec, channel: c, is_direct: false });
-                                    panelConfig.channels_used.push(c);
-                                } else {
-                                    comboValid = false;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    if (!comboValid) continue;
-
-                    // Assign dyes without stalling on channel collisions
-                    let assignedDyes = [];
-                    for (let dye of dyes) {
-                        const c = this.matchChannelForReagent(dye, configuredChannels, allowedChannels);
-                        if (c) {
-                            if (panelConfig.channels_used.includes(c)) {
-                                panelConfig.conflicts.push({
-                                    type: 'spectral',
-                                    channel: c,
-                                    reagent: dye.name,
-                                    message: `Spectral Overlap in ${c} channel: ${dye.name} overlaps with another reagent.`
-                                });
-                            }
-                            panelConfig.channels_used.push(c);
-                            assignedDyes.push({ dye: dye, channel: c });
-                        } else if (lockedDyes.includes(dye.id)) {
-                            panelConfig.conflicts.push({
-                                type: 'spectral',
-                                channel: 'Unassigned',
-                                reagent: dye.name,
-                                message: `Channel Unmatched: Locked dye ${dye.name} does not match any permitted channel.`
-                            });
-                            assignedDyes.push({ dye: dye, channel: 'Unknown' });
-                        }
-                    }
-
-                    panelConfig.assignedDyes = assignedDyes;
-                    panelConfig.fixation = this.checkFixationCompatibility(panelConfig);
-                    panelConfig.score = this.scoreCombination(panelConfig, application, config.scoringWeights);
-                    
-                    fullCombos.push(panelConfig);
                 }
             }
 
-            // Sort by:
-            // 1. Conflict-free first (if any exist)
-            // 2. Targets covered (desc)
-            // 3. Score (desc)
+            // Sort: Targets covered (desc) -> Score (desc)
             fullCombos.sort((a, b) => {
-                const aConflicts = (a.conflicts || []).length;
-                const bConflicts = (b.conflicts || []).length;
-                if (aConflicts === 0 && bConflicts > 0) return -1;
-                if (aConflicts > 0 && bConflicts === 0) return 1;
-
-                if (b.targets_covered.length !== a.targets_covered.length) {
-                    return b.targets_covered.length - a.targets_covered.length;
-                }
-                return b.score - a.score;
+                const aCov = (a.targets_covered || []).length;
+                const bCov = (b.targets_covered || []).length;
+                if (bCov !== aCov) return bCov - aCov;
+                return (b.score || 0) - (a.score || 0);
             });
-            
-            return { combinations: fullCombos };
+
+            if (fullCombos.length > 50) {
+                fullCombos = fullCombos.slice(0, 50);
+            }
+
+            return {
+                combinations: fullCombos,
+                excludedReagents: excludedReagents,
+                error: null
+            };
         } catch (err) {
             console.error("[SpectraPanel CombinationEngine] Error:", err);
-            return { error: err.message, combinations: [] };
+            return { error: err.message, combinations: [], excludedReagents: [] };
         }
+    },
+
+    assignSecondariesToPrimaries(pCombo, application, usedChannels, allowedChannels, configuredChannels) {
+        const availableChannels = allowedChannels.filter(c => !usedChannels.includes(c));
+        if (pCombo.length > availableChannels.length) return [];
+
+        const primaryOptions = [];
+
+        for (let p of pCombo) {
+            if (p.conjugated_fluorophore) {
+                const c = this.matchChannelForReagent({ color: p.conjugated_color, name: p.conjugated_fluorophore }, configuredChannels, allowedChannels);
+                if (!c || !availableChannels.includes(c)) {
+                    return [];
+                }
+                primaryOptions.push([{
+                    primary: p,
+                    secondary: null,
+                    channel: c,
+                    is_direct: true
+                }]);
+            } else {
+                const validSecs = this.findCompatibleSecondaries(p, application, usedChannels, pCombo, allowedChannels, configuredChannels);
+                if (validSecs.length === 0) {
+                    return [];
+                }
+                const options = validSecs.map(s => ({
+                    primary: p,
+                    secondary: s,
+                    channel: s.channel_assigned,
+                    is_direct: false
+                }));
+                primaryOptions.push(options);
+            }
+        }
+
+        const assignments = [];
+
+        function backtrack(pIdx, currentAssignment, channelsUsed) {
+            if (pIdx === primaryOptions.length) {
+                assignments.push([...currentAssignment]);
+                return;
+            }
+
+            const options = primaryOptions[pIdx];
+            for (let opt of options) {
+                if (!channelsUsed.has(opt.channel)) {
+                    let hasCrossConflict = false;
+                    if (!opt.is_direct && opt.secondary) {
+                        const secHost = (opt.secondary.host || '').toLowerCase();
+                        for (let otherP of pCombo) {
+                            if (otherP !== opt.primary && (otherP.host || '').toLowerCase() === secHost) {
+                                hasCrossConflict = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!hasCrossConflict) {
+                        channelsUsed.add(opt.channel);
+                        currentAssignment.push(opt);
+                        backtrack(pIdx + 1, currentAssignment, channelsUsed);
+                        currentAssignment.pop();
+                        channelsUsed.delete(opt.channel);
+                    }
+                }
+            }
+        }
+
+        backtrack(0, [], new Set());
+        return assignments;
+    },
+
+    getComboSignature(panel) {
+        const parts = [];
+        (panel.primaries || []).forEach(p => {
+            const sec = p.is_direct ? `Direct-${p.primary.conjugated_color}` : (p.secondary ? p.secondary.id || p.secondary.conjugate : '');
+            parts.push(`${p.channel}:${p.primary.id || p.primary.target}:${sec}`);
+        });
+        (panel.assignedDyes || []).forEach(d => {
+            parts.push(`${d.channel}:${d.dye.id || d.dye.name}`);
+        });
+        (panel.reporters || []).forEach(r => {
+            parts.push(`Reporter:${r.id || r.reporter || r.target}`);
+        });
+        return parts.sort().join('|');
     },
 
     generateSubsets(targets, lockedTargets, maxChannels) {
