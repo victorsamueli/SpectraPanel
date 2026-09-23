@@ -707,6 +707,25 @@ ${message}
 
     renderDatabaseTable() {
         const table = document.getElementById('db-table');
+        const emptyStateEl = document.getElementById('db-empty-state');
+        const contentAreaEl = document.getElementById('db-content-area');
+        const btnClearDb = document.getElementById('btn-clear-db');
+
+        // Check if entire database is empty across all tabs
+        const totalItems = ['primaries', 'secondaries', 'dyes', 'reporters']
+            .reduce((sum, k) => sum + (window.db[k] ? window.db[k].length : 0), 0);
+
+        if (totalItems === 0) {
+            if (emptyStateEl) emptyStateEl.style.display = 'flex';
+            if (contentAreaEl) contentAreaEl.style.display = 'none';
+            if (btnClearDb) btnClearDb.style.display = 'none';
+            return;
+        } else {
+            if (emptyStateEl) emptyStateEl.style.display = 'none';
+            if (contentAreaEl) contentAreaEl.style.display = 'block';
+            if (btnClearDb) btnClearDb.style.display = 'inline-flex';
+        }
+
         if (!table) return;
 
         const thead = table.querySelector('thead');
@@ -751,8 +770,13 @@ ${message}
         }
 
         if (data.length === 0) {
-            thead.innerHTML = `<tr><th>No records match criteria</th></tr>`;
-            tbody.innerHTML = `<tr><td style="text-align:center; padding: 2rem; color: var(--text-muted);">No entries found matching filters.</td></tr>`;
+            if (!window.db[tab] || window.db[tab].length === 0) {
+                thead.innerHTML = `<tr><th>Empty Category</th></tr>`;
+                tbody.innerHTML = `<tr><td style="text-align:center; padding: 2.5rem 1rem; color: var(--text-muted);"><i class="fa-solid fa-folder-open" style="font-size: 1.5rem; margin-bottom: 0.5rem; display: block; opacity: 0.6;"></i>No ${tab.replace(/_/g, ' ')} loaded in this inventory.<br><span style="font-size: 0.75rem;">Click 'Manual Entry' above to add items, or upload a sheet containing ${tab}.</span></td></tr>`;
+            } else {
+                thead.innerHTML = `<tr><th>No records match criteria</th></tr>`;
+                tbody.innerHTML = `<tr><td style="text-align:center; padding: 2rem; color: var(--text-muted);">No entries found matching current filter or search criteria.</td></tr>`;
+            }
             return;
         }
 
@@ -891,9 +915,20 @@ ${message}
         const container = document.getElementById('selected-targets');
         const countSpan = document.getElementById('selected-count');
         const btnClear = document.getElementById('btn-clear-selected');
+        const btnGenerate = document.getElementById('btn-generate');
 
         if (countSpan) countSpan.innerText = this.state.selectedReagents.length;
         if (btnClear) btnClear.style.display = this.state.selectedReagents.length > 0 ? 'inline-block' : 'none';
+
+        if (btnGenerate) {
+            if (this.state.selectedReagents.length === 0) {
+                btnGenerate.disabled = true;
+                btnGenerate.setAttribute('title', 'Select at least one target in the database to generate combinations');
+            } else {
+                btnGenerate.disabled = false;
+                btnGenerate.removeAttribute('title');
+            }
+        }
 
         if (!container) return;
 

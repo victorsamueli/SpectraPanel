@@ -820,6 +820,23 @@ html, body {
 
 .status-success { background: rgba(52, 211, 153, 0.15); color: var(--accent-green); }
 .status-error { background: rgba(248, 113, 113, 0.15); color: var(--accent-red); }
+.status-muted { background: rgba(148, 163, 184, 0.15); color: var(--text-muted); border: 1px solid rgba(148, 163, 184, 0.25); }
+.status-warn { background: rgba(251, 191, 36, 0.15); color: var(--accent-yellow); border: 1px solid rgba(251, 191, 36, 0.25); }
+
+.btn-outline-danger {
+    background: transparent;
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    color: var(--accent-red);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s ease;
+}
+
+.btn-outline-danger:hover {
+    background: rgba(248, 113, 113, 0.15);
+    border-color: var(--accent-red);
+    color: #fca5a5;
+}
 
 /* Settings Modal Specifics */
 .guide-steps {
@@ -1261,6 +1278,72 @@ textarea.form-input {
     border: 1px solid rgba(255, 255, 255, 0.12);
     color: var(--text-primary);
     white-space: nowrap;
+}
+
+/* Database Empty State Card */
+.db-empty-state-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 3.5rem 2rem;
+    background: rgba(15, 23, 42, 0.45);
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-md);
+    margin: 1rem 0;
+    transition: all 0.3s ease;
+}
+
+.db-empty-state-panel .empty-state-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    color: var(--accent-blue);
+    margin-bottom: 1.25rem;
+}
+
+.db-empty-state-panel h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.db-empty-state-panel .empty-state-desc {
+    max-width: 480px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+}
+
+.db-empty-state-panel .empty-state-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.db-empty-state-panel .empty-state-footer-note {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Disabled Generate Button State */
+#btn-generate:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    filter: grayscale(0.5);
+    box-shadow: none;
+    transform: none !important;
 }
 
 /* Responsive */

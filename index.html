@@ -60,7 +60,10 @@
                             <p class="card-subtitle">Filter criteria and select targets for your multiplex panel</p>
                         </div>
                         <div class="header-right-tools">
-                            <span id="upload-status" class="status-pill status-success">Default Data</span>
+                            <span id="upload-status" class="status-pill status-muted">No Data Loaded</span>
+                            <button id="btn-clear-db" class="btn btn-outline-danger btn-sm" style="display: none;" title="Clear loaded inventory from browser">
+                                <i class="fa-solid fa-trash-can"></i> Clear DB
+                            </button>
                             <button id="btn-manual-entry" class="btn btn-secondary btn-sm">
                                 <i class="fa-solid fa-plus"></i> Manual Entry
                             </button>
@@ -83,62 +86,87 @@
                         </button>
                     </div>
 
-                    <!-- Filter Controls (Left-Side Only) -->
-                    <div class="filter-toolbar">
-                        <div class="filter-inputs">
-                            <div class="filter-field">
-                                <label for="filter-key">Filter Key:</label>
-                                <select id="filter-key" class="form-select">
-                                    <option value="">-- Select Column --</option>
-                                </select>
-                            </div>
-                            <div class="filter-field">
-                                <label for="filter-value">Value:</label>
-                                <select id="filter-value" class="form-select">
-                                    <option value="">-- All Values --</option>
-                                </select>
-                            </div>
-                            <button id="btn-add-filter" class="btn btn-secondary btn-sm align-end">
-                                <i class="fa-solid fa-filter"></i> Add Filter
+                    <!-- Prominent Empty State when Database has no data -->
+                    <div id="db-empty-state" class="db-empty-state-panel mt-3">
+                        <div class="empty-state-icon">
+                            <i class="fa-solid fa-file-circle-plus"></i>
+                        </div>
+                        <h3>No Inventory Loaded Yet</h3>
+                        <p class="empty-state-desc">
+                            Upload your laboratory's antibody and reagent inventory to begin designing multiplex panels, or download our clean template to get started.
+                        </p>
+                        <div class="empty-state-actions">
+                            <label for="db-upload" class="btn btn-primary" style="cursor: pointer;">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> Upload Database (.xlsx / .csv)
+                            </label>
+                            <button type="button" id="btn-empty-download-template" class="btn btn-secondary">
+                                <i class="fa-solid fa-file-excel"></i> Download Excel Template
                             </button>
                         </div>
-                        <div class="search-and-columns">
-                            <div class="search-field">
-                                <div class="search-input-wrap">
-                                    <i class="fa-solid fa-magnifying-glass"></i>
-                                    <input type="text" id="db-table-search" placeholder="Quick search in table..." class="form-input">
+                        <p class="empty-state-footer-note mt-3">
+                            Want to test first? <button type="button" id="btn-load-demo" class="btn-link" style="color: var(--accent-primary); text-decoration: underline; font-size: 0.8rem; cursor: pointer;">Load sample demo data</button> to explore SpectraPanel.
+                        </p>
+                    </div>
+
+                    <!-- Active Database Content (Visible when inventory is loaded) -->
+                    <div id="db-content-area" style="display: none;">
+                        <!-- Filter Controls (Left-Side Only) -->
+                        <div class="filter-toolbar">
+                            <div class="filter-inputs">
+                                <div class="filter-field">
+                                    <label for="filter-key">Filter Key:</label>
+                                    <select id="filter-key" class="form-select">
+                                        <option value="">-- Select Column --</option>
+                                    </select>
                                 </div>
-                            </div>
-                            <div class="column-visibility-wrap">
-                                <button type="button" id="btn-toggle-columns" class="btn btn-secondary btn-sm" title="Select columns to display in table">
-                                    <i class="fa-solid fa-table-columns"></i> Columns <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem; margin-left: 2px;"></i>
+                                <div class="filter-field">
+                                    <label for="filter-value">Value:</label>
+                                    <select id="filter-value" class="form-select">
+                                        <option value="">-- All Values --</option>
+                                    </select>
+                                </div>
+                                <button id="btn-add-filter" class="btn btn-secondary btn-sm align-end">
+                                    <i class="fa-solid fa-filter"></i> Add Filter
                                 </button>
-                                <div id="column-dropdown" class="column-dropdown glass-panel" style="display: none;">
-                                    <div class="column-dropdown-header">
-                                        <span>Display Columns</span>
-                                        <button type="button" id="btn-reset-columns" class="btn-link" style="font-size: 0.725rem;">Reset</button>
+                            </div>
+                            <div class="search-and-columns">
+                                <div class="search-field">
+                                    <div class="search-input-wrap">
+                                        <i class="fa-solid fa-magnifying-glass"></i>
+                                        <input type="text" id="db-table-search" placeholder="Quick search in table..." class="form-input">
                                     </div>
-                                    <div id="column-checkboxes-container" class="column-checkboxes"></div>
+                                </div>
+                                <div class="column-visibility-wrap">
+                                    <button type="button" id="btn-toggle-columns" class="btn btn-secondary btn-sm" title="Select columns to display in table">
+                                        <i class="fa-solid fa-table-columns"></i> Columns <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem; margin-left: 2px;"></i>
+                                    </button>
+                                    <div id="column-dropdown" class="column-dropdown glass-panel" style="display: none;">
+                                        <div class="column-dropdown-header">
+                                            <span>Display Columns</span>
+                                            <button type="button" id="btn-reset-columns" class="btn-link" style="font-size: 0.725rem;">Reset</button>
+                                        </div>
+                                        <div id="column-checkboxes-container" class="column-checkboxes"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Active Filter Badges -->
-                    <div id="active-filters" class="active-filters-bar"></div>
+                        <!-- Active Filter Badges -->
+                        <div id="active-filters" class="active-filters-bar"></div>
 
-                    <!-- Interactive Data Table -->
-                    <div class="table-container">
-                        <table id="db-table" class="data-table">
-                            <thead>
-                                <tr><th>Loading inventory...</th></tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                    <div class="table-footer-info">
-                        <span id="table-row-count">0 items</span>
-                        <span class="selection-notice"><i class="fa-solid fa-circle-info"></i> Click checkbox to select. Click 🔓 to lock.</span>
+                        <!-- Interactive Data Table -->
+                        <div class="table-container">
+                            <table id="db-table" class="data-table">
+                                <thead>
+                                    <tr><th>Loading inventory...</th></tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div class="table-footer-info">
+                            <span id="table-row-count">0 items</span>
+                            <span class="selection-notice"><i class="fa-solid fa-circle-info"></i> Click checkbox to select. Click 🔓 to lock.</span>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -201,7 +229,7 @@
                         <span class="empty-hint">No targets selected yet. Check items in the left database table.</span>
                     </div>
 
-                    <button id="btn-generate" class="btn btn-primary btn-lg w-full mt-3">
+                    <button id="btn-generate" class="btn btn-primary btn-lg w-full mt-3" disabled title="Select at least one target in the database to generate combinations">
                         <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Combinations
                     </button>
                 </div>

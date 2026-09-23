@@ -9,7 +9,74 @@ window.db = {
 };
 
 const DataLoader = {
-    async loadDefaultData() {
+    /**
+     * Initializes the database on application launch.
+     * Starts empty by default unless user has saved custom inventory in localStorage.
+     */
+    initDatabase() {
+        try {
+            const saved = localStorage.getItem('spectrapanel_inventory');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed && typeof parsed === 'object') {
+                    window.db.primaries = parsed.primaries || [];
+                    window.db.secondaries = parsed.secondaries || [];
+                    window.db.dyes = parsed.dyes || [];
+                    window.db.reporters = parsed.reporters || [];
+                    window.db.channels = parsed.channels || [];
+
+                    const totalItems = window.db.primaries.length + window.db.secondaries.length + window.db.dyes.length + window.db.reporters.length;
+                    if (totalItems > 0) {
+                        const statusEl = document.getElementById('upload-status');
+                        if (statusEl) {
+                            statusEl.innerText = "Saved Inventory";
+                            statusEl.className = "status-pill status-success";
+                        }
+                        document.dispatchEvent(new CustomEvent('dbLoaded'));
+                        return;
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn("Could not read spectrapanel_inventory from localStorage", e);
+        }
+
+        // Default: Start completely empty!
+        window.db.primaries = [];
+        window.db.secondaries = [];
+        window.db.dyes = [];
+        window.db.reporters = [];
+        window.db.channels = [];
+
+        const statusEl = document.getElementById('upload-status');
+        if (statusEl) {
+            statusEl.innerText = "No Data Loaded";
+            statusEl.className = "status-pill status-muted";
+        }
+        document.dispatchEvent(new CustomEvent('dbLoaded'));
+    },
+
+    saveToLocalStorage() {
+        try {
+            const payload = {
+                primaries: window.db.primaries || [],
+                secondaries: window.db.secondaries || [],
+                dyes: window.db.dyes || [],
+                reporters: window.db.reporters || [],
+                channels: window.db.channels || []
+            };
+            localStorage.setItem('spectrapanel_inventory', JSON.stringify(payload));
+        } catch (e) {
+            console.warn("Could not persist inventory to localStorage", e);
+        }
+    },
+
+    async loadDemoData() {
+        const statusEl = document.getElementById('upload-status');
+        if (statusEl) {
+            statusEl.innerText = "Loading Demo Data...";
+            statusEl.className = "status-pill status-warn";
+        }
         try {
             await Promise.all([
                 this.loadCSV('data/primary_antibodies.csv', 'primaries'),
@@ -18,21 +85,24 @@ const DataLoader = {
                 this.loadCSV('data/reporters.csv', 'reporters'),
                 this.loadCSV('data/channels.csv', 'channels')
             ]);
-            console.log("[SpectraPanel] Default data loaded:", window.db);
-            const statusEl = document.getElementById('upload-status');
+            console.log("[SpectraPanel] Sample demo data loaded:", window.db);
+            this.saveToLocalStorage();
             if (statusEl) {
-                statusEl.innerText = "Default Data";
+                statusEl.innerText = "Demo Data";
                 statusEl.className = "status-pill status-success";
             }
             document.dispatchEvent(new CustomEvent('dbLoaded'));
         } catch (error) {
-            console.error("[SpectraPanel] Error loading default data:", error);
-            const statusEl = document.getElementById('upload-status');
+            console.error("[SpectraPanel] Error loading demo data:", error);
             if (statusEl) {
-                statusEl.innerText = "Error loading data";
+                statusEl.innerText = "Error loading demo";
                 statusEl.className = "status-pill status-error";
             }
         }
+    },
+
+    async loadDefaultData() {
+        return this.loadDemoData();
     },
 
     loadCSV(url, dbKey) {
@@ -130,6 +200,7 @@ const DataLoader = {
                     });
 
                     if (importedSheets.length > 0) {
+                        this.saveToLocalStorage();
                         if (statusEl) {
                             statusEl.innerText = `Loaded: ${importedSheets.join(', ')}`;
                             statusEl.className = "status-pill status-success";
@@ -206,6 +277,7 @@ const DataLoader = {
         }
 
         window.db[targetDb] = data;
+        this.saveToLocalStorage();
         if (statusEl) {
             statusEl.innerText = `Loaded ${targetDb} from ${filename}`;
             statusEl.className = "status-pill status-success";
@@ -213,15 +285,28 @@ const DataLoader = {
         document.dispatchEvent(new CustomEvent('dbLoaded'));
     },
 
-    clearDatabase() {
+    clearDatabase(confirmWithUser = true) {
+        if (confirmWithUser) {
+            const ok = confirm("Are you sure you want to clear your loaded inventory? This will remove all loaded antibodies, dyes, and reporters from your browser session.");
+            if (!ok) return;
+        }
         window.db.primaries = [];
         window.db.secondaries = [];
         window.db.dyes = [];
         window.db.reporters = [];
+        window.db.channels = [];
+        try {
+            localStorage.removeItem('spectrapanel_inventory');
+        } catch (e) {}
+
         const statusEl = document.getElementById('upload-status');
         if (statusEl) {
-            statusEl.innerText = "Database Cleared";
-            statusEl.className = "status-pill status-error";
+            statusEl.innerText = "No Data Loaded";
+            statusEl.className = "status-pill status-muted";
+        }
+        if (window.UI && window.UI.state) {
+            window.UI.state.selectedReagents = [];
+            window.UI.renderSelectedTargetsBox();
         }
         document.dispatchEvent(new CustomEvent('dbLoaded'));
     },

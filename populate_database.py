@@ -2,6 +2,7 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 import os
+import csv
 
 # Create workbook
 wb = openpyxl.Workbook()
@@ -49,7 +50,7 @@ for r_idx, row in enumerate(instructions_content, 1):
         else:
             cell.font = Font(name='Segoe UI', size=10, color='475569')
 
-# 2. Primaries
+# 2. Primaries (32 antibodies extracted from PDF datasheets)
 prim_headers = ['target', 'host', 'isotype', 'applications', 'conjugated_color', 'fixation_compatible', 'live_cell_compatible']
 
 primaries_data = [
@@ -123,47 +124,138 @@ ws_prim.append(prim_headers)
 for item in primaries_data:
     ws_prim.append([item[h] for h in prim_headers])
 
-# 3. Secondaries
+# 3. Secondaries (User Lab Inventory from Screenshot)
 sec_headers = ['anti_host', 'anti_isotype', 'conjugate', 'conjugate_type', 'color', 'excitation_nm', 'emission_nm', 'applications']
+
 secondaries_data = [
-    # Rabbit secondaries
-    {'anti_host': 'Rabbit', 'anti_isotype': 'IgG (H+L)', 'conjugate': 'Alexa Fluor 488', 'conjugate_type': 'Fluorophore', 'color': 'Green', 'excitation_nm': 490, 'emission_nm': 525, 'applications': 'ICC, IHC, WB'},
-    {'anti_host': 'Rabbit', 'anti_isotype': 'IgG (H+L)', 'conjugate': 'Alexa Fluor 555', 'conjugate_type': 'Fluorophore', 'color': 'Red', 'excitation_nm': 555, 'emission_nm': 565, 'applications': 'ICC, IHC, WB'},
-    {'anti_host': 'Rabbit', 'anti_isotype': 'IgG (H+L)', 'conjugate': 'Alexa Fluor 647', 'conjugate_type': 'Fluorophore', 'color': 'Far-Red', 'excitation_nm': 650, 'emission_nm': 665, 'applications': 'ICC, IHC, WB'},
-    {'anti_host': 'Rabbit', 'anti_isotype': 'IgG (H+L)', 'conjugate': 'HRP', 'conjugate_type': 'HRP', 'color': '', 'excitation_nm': '', 'emission_nm': '', 'applications': 'WB'},
-    
-    # Mouse general IgG secondaries
-    {'anti_host': 'Mouse', 'anti_isotype': 'IgG (H+L)', 'conjugate': 'Alexa Fluor 488', 'conjugate_type': 'Fluorophore', 'color': 'Green', 'excitation_nm': 490, 'emission_nm': 525, 'applications': 'ICC, IHC, WB'},
-    {'anti_host': 'Mouse', 'anti_isotype': 'IgG (H+L)', 'conjugate': 'Alexa Fluor 555', 'conjugate_type': 'Fluorophore', 'color': 'Red', 'excitation_nm': 555, 'emission_nm': 565, 'applications': 'ICC, IHC, WB'},
-    {'anti_host': 'Mouse', 'anti_isotype': 'IgG (H+L)', 'conjugate': 'Alexa Fluor 647', 'conjugate_type': 'Fluorophore', 'color': 'Far-Red', 'excitation_nm': 650, 'emission_nm': 665, 'applications': 'ICC, IHC, WB'},
-    {'anti_host': 'Mouse', 'anti_isotype': 'IgG (H+L)', 'conjugate': 'HRP', 'conjugate_type': 'HRP', 'color': '', 'excitation_nm': '', 'emission_nm': '', 'applications': 'WB'},
-    
-    # Mouse Subclass Isotype-Specific Secondaries (for cross-adsorbed multiplexing)
-    {'anti_host': 'Mouse', 'anti_isotype': 'IgG1', 'conjugate': 'Alexa Fluor 488', 'conjugate_type': 'Fluorophore', 'color': 'Green', 'excitation_nm': 490, 'emission_nm': 525, 'applications': 'ICC, IHC, WB'},
-    {'anti_host': 'Mouse', 'anti_isotype': 'IgG1', 'conjugate': 'Alexa Fluor 594', 'conjugate_type': 'Fluorophore', 'color': 'Red', 'excitation_nm': 590, 'emission_nm': 617, 'applications': 'ICC, IHC, WB'},
-    {'anti_host': 'Mouse', 'anti_isotype': 'IgG1', 'conjugate': 'Alexa Fluor 647', 'conjugate_type': 'Fluorophore', 'color': 'Far-Red', 'excitation_nm': 650, 'emission_nm': 665, 'applications': 'ICC, IHC, WB'},
-    
-    {'anti_host': 'Mouse', 'anti_isotype': 'IgG2a', 'conjugate': 'Alexa Fluor 488', 'conjugate_type': 'Fluorophore', 'color': 'Green', 'excitation_nm': 490, 'emission_nm': 525, 'applications': 'ICC, IHC, WB'},
-    {'anti_host': 'Mouse', 'anti_isotype': 'IgG2a', 'conjugate': 'Alexa Fluor 555', 'conjugate_type': 'Fluorophore', 'color': 'Red', 'excitation_nm': 555, 'emission_nm': 565, 'applications': 'ICC, IHC, WB'},
-    {'anti_host': 'Mouse', 'anti_isotype': 'IgG2a', 'conjugate': 'Alexa Fluor 647', 'conjugate_type': 'Fluorophore', 'color': 'Far-Red', 'excitation_nm': 650, 'emission_nm': 665, 'applications': 'ICC, IHC, WB'},
-    
-    {'anti_host': 'Mouse', 'anti_isotype': 'IgG2b', 'conjugate': 'Alexa Fluor 488', 'conjugate_type': 'Fluorophore', 'color': 'Green', 'excitation_nm': 490, 'emission_nm': 525, 'applications': 'ICC, IHC, WB'},
-    {'anti_host': 'Mouse', 'anti_isotype': 'IgG2b', 'conjugate': 'Alexa Fluor 555', 'conjugate_type': 'Fluorophore', 'color': 'Red', 'excitation_nm': 555, 'emission_nm': 565, 'applications': 'ICC, IHC, WB'},
-    {'anti_host': 'Mouse', 'anti_isotype': 'IgG2b', 'conjugate': 'Alexa Fluor 647', 'conjugate_type': 'Fluorophore', 'color': 'Far-Red', 'excitation_nm': 650, 'emission_nm': 665, 'applications': 'ICC, IHC, WB'},
-    
-    {'anti_host': 'Mouse', 'anti_isotype': 'IgM', 'conjugate': 'Alexa Fluor 488', 'conjugate_type': 'Fluorophore', 'color': 'Green', 'excitation_nm': 490, 'emission_nm': 525, 'applications': 'ICC, IHC, WB'},
-    {'anti_host': 'Mouse', 'anti_isotype': 'IgM', 'conjugate': 'Alexa Fluor 555', 'conjugate_type': 'Fluorophore', 'color': 'Red', 'excitation_nm': 555, 'emission_nm': 565, 'applications': 'ICC, IHC, WB'},
-    {'anti_host': 'Mouse', 'anti_isotype': 'IgM', 'conjugate': 'Alexa Fluor 647', 'conjugate_type': 'Fluorophore', 'color': 'Far-Red', 'excitation_nm': 650, 'emission_nm': 665, 'applications': 'ICC, IHC, WB'},
-    
-    # Rat & Chicken Secondaries
-    {'anti_host': 'Rat', 'anti_isotype': 'IgG (H+L)', 'conjugate': 'Alexa Fluor 647', 'conjugate_type': 'Fluorophore', 'color': 'Far-Red', 'excitation_nm': 650, 'emission_nm': 665, 'applications': 'ICC, IHC, WB'},
-    {'anti_host': 'Chicken', 'anti_isotype': 'IgY (H+L)', 'conjugate': 'Alexa Fluor 647', 'conjugate_type': 'Fluorophore', 'color': 'Far-Red', 'excitation_nm': 650, 'emission_nm': 665, 'applications': 'ICC, IHC, WB'},
+    # 1. Donkey Anti-Goat IgG HRP Conjugate | Cat: A15999
+    {
+        'anti_host': 'Goat',
+        'anti_isotype': 'IgG (H+L)',
+        'conjugate': 'HRP (Donkey, Invitrogen A15999)',
+        'conjugate_type': 'HRP',
+        'color': '',
+        'excitation_nm': '',
+        'emission_nm': '',
+        'applications': 'WB'
+    },
+    # 2. Goat Anti Mouse Alexafluor-488 IgM (µ chain) | Cat: A21042
+    {
+        'anti_host': 'Mouse',
+        'anti_isotype': 'IgM',
+        'conjugate': 'Alexa Fluor 488 (Goat, Invitrogen A21042)',
+        'conjugate_type': 'Fluorophore',
+        'color': 'Green',
+        'excitation_nm': 490,
+        'emission_nm': 525,
+        'applications': 'ICC, IHC, WB'
+    },
+    # 3. Donkey Anti Rabbit alexafluor-488 | Cat: A21206
+    {
+        'anti_host': 'Rabbit',
+        'anti_isotype': 'IgG (H+L)',
+        'conjugate': 'Alexa Fluor 488 (Donkey, Invitrogen A21206)',
+        'conjugate_type': 'Fluorophore',
+        'color': 'Green',
+        'excitation_nm': 490,
+        'emission_nm': 525,
+        'applications': 'ICC, IHC, WB'
+    },
+    # 4. Anti Chicken alexa-633 IgY (H+L) Goat Ab | Cat: A21103
+    {
+        'anti_host': 'Chicken',
+        'anti_isotype': 'IgY (H+L)',
+        'conjugate': 'Alexa Fluor 633 (Goat, Invitrogen A21103)',
+        'conjugate_type': 'Fluorophore',
+        'color': 'Far-Red',
+        'excitation_nm': 632,
+        'emission_nm': 647,
+        'applications': 'ICC, IHC, WB'
+    },
+    # 5. Goat Anti-Rabbit alexafluor-647 | Cat: A21245
+    {
+        'anti_host': 'Rabbit',
+        'anti_isotype': 'IgG (H+L)',
+        'conjugate': 'Alexa Fluor 647 (Goat, Invitrogen A21245)',
+        'conjugate_type': 'Fluorophore',
+        'color': 'Far-Red',
+        'excitation_nm': 650,
+        'emission_nm': 665,
+        'applications': 'ICC, IHC, WB'
+    },
+    # 6. Goat Anti Mouse Alexafluor-647 | Cat: A21235
+    {
+        'anti_host': 'Mouse',
+        'anti_isotype': 'IgG (H+L)',
+        'conjugate': 'Alexa Fluor 647 (Goat, Invitrogen A21235)',
+        'conjugate_type': 'Fluorophore',
+        'color': 'Far-Red',
+        'excitation_nm': 650,
+        'emission_nm': 665,
+        'applications': 'ICC, IHC, WB'
+    },
+    # 7. Goat Anti Mouse Alexafluor-488 | Cat: A11001
+    {
+        'anti_host': 'Mouse',
+        'anti_isotype': 'IgG (H+L)',
+        'conjugate': 'Alexa Fluor 488 (Goat, Invitrogen A11001)',
+        'conjugate_type': 'Fluorophore',
+        'color': 'Green',
+        'excitation_nm': 490,
+        'emission_nm': 525,
+        'applications': 'ICC, IHC, WB'
+    },
+    # 8. Goat Anti-Rabbit alexafluor-647 | Cat: A32733 (Alexa Fluor Plus 647)
+    {
+        'anti_host': 'Rabbit',
+        'anti_isotype': 'IgG (H+L)',
+        'conjugate': 'Alexa Fluor Plus 647 (Goat, Invitrogen A32733)',
+        'conjugate_type': 'Fluorophore',
+        'color': 'Far-Red',
+        'excitation_nm': 650,
+        'emission_nm': 665,
+        'applications': 'ICC, IHC, WB'
+    },
+    # 9. Goat Anti Mouse alexa-647 | Cat: A32728 (Alexa Fluor Plus 647)
+    {
+        'anti_host': 'Mouse',
+        'anti_isotype': 'IgG (H+L)',
+        'conjugate': 'Alexa Fluor Plus 647 (Goat, Invitrogen A32728)',
+        'conjugate_type': 'Fluorophore',
+        'color': 'Far-Red',
+        'excitation_nm': 650,
+        'emission_nm': 665,
+        'applications': 'ICC, IHC, WB'
+    },
+    # 10. Goat Anti-Rabbit Alexafluor 555 | Cat: A32732 (Alexa Fluor Plus 555)
+    {
+        'anti_host': 'Rabbit',
+        'anti_isotype': 'IgG (H+L)',
+        'conjugate': 'Alexa Fluor Plus 555 (Goat, Invitrogen A32732)',
+        'conjugate_type': 'Fluorophore',
+        'color': 'Red',
+        'excitation_nm': 555,
+        'emission_nm': 565,
+        'applications': 'ICC, IHC, WB'
+    },
+    # 11. Streptavidin Alexafluor 488 conjugate | Cat: S32354
+    {
+        'anti_host': 'Biotin',
+        'anti_isotype': 'Biotin',
+        'conjugate': 'Alexa Fluor 488 (Streptavidin, Invitrogen S32354)',
+        'conjugate_type': 'Fluorophore',
+        'color': 'Green',
+        'excitation_nm': 490,
+        'emission_nm': 525,
+        'applications': 'ICC, IHC, WB'
+    }
 ]
+
 ws_sec.append(sec_headers)
 for item in secondaries_data:
     ws_sec.append([item[h] for h in sec_headers])
 
-# 4. Direct Dyes
+# 4. Direct Dyes (including Streptavidin-AF488, DAPI, Phalloidin, etc.)
 dyes_headers = ['name', 'target_structure', 'color', 'excitation_nm', 'emission_nm', 'live_cell_compatible']
 dyes_data = [
     {'name': 'DAPI', 'target_structure': 'DNA', 'color': 'Blue', 'excitation_nm': 360, 'emission_nm': 460, 'live_cell_compatible': 'Yes'},
@@ -173,6 +265,7 @@ dyes_data = [
     {'name': 'SiR-Actin', 'target_structure': 'F-Actin', 'color': 'Far-Red', 'excitation_nm': 652, 'emission_nm': 674, 'live_cell_compatible': 'Yes'},
     {'name': 'MitoTracker Red', 'target_structure': 'Mitochondria', 'color': 'Red', 'excitation_nm': 579, 'emission_nm': 599, 'live_cell_compatible': 'Yes'},
     {'name': 'WGA-AF488', 'target_structure': 'Membrane', 'color': 'Green', 'excitation_nm': 495, 'emission_nm': 519, 'live_cell_compatible': 'Yes'},
+    {'name': 'Streptavidin-AF488 (S32354)', 'target_structure': 'Biotinylated Targets', 'color': 'Green', 'excitation_nm': 490, 'emission_nm': 525, 'live_cell_compatible': 'No'},
 ]
 ws_dyes.append(dyes_headers)
 for item in dyes_data:
@@ -236,4 +329,43 @@ for p in paths:
     wb.save(p)
     print(f'Successfully saved: {p}')
 
-print('All workbooks populated successfully!')
+# Also update data/secondary_antibodies.csv in IFGuidePy
+csv_path = r'd:\01_VSI Academic\PhD Data\Coding\Python Coding\IFGuidePy\data\secondary_antibodies.csv'
+csv_cols = ['id', 'anti_host', 'anti_isotype', 'conjugate', 'conjugate_type', 'excitation_nm', 'emission_nm', 'applications', 'catalog_no', 'supplier', 'notes']
+
+cat_map = {
+    'HRP (Donkey, Invitrogen A15999)': ('A15999', 'Invitrogen', 'Donkey anti-Goat HRP'),
+    'Alexa Fluor 488 (Goat, Invitrogen A21042)': ('A21042', 'Invitrogen', 'Goat anti-Mouse IgM (µ chain)'),
+    'Alexa Fluor 488 (Donkey, Invitrogen A21206)': ('A21206', 'Invitrogen', 'Donkey anti-Rabbit IgG (H+L)'),
+    'Alexa Fluor 633 (Goat, Invitrogen A21103)': ('A21103', 'Invitrogen', 'Goat anti-Chicken IgY (H+L), Common 4 deg box'),
+    'Alexa Fluor 647 (Goat, Invitrogen A21245)': ('A21245', 'Invitrogen', 'Goat anti-Rabbit IgG (H+L)'),
+    'Alexa Fluor 647 (Goat, Invitrogen A21235)': ('A21235', 'Invitrogen', 'Goat anti-Mouse IgG (H+L)'),
+    'Alexa Fluor 488 (Goat, Invitrogen A11001)': ('A11001', 'Invitrogen', 'Goat anti-Mouse IgG (H+L)'),
+    'Alexa Fluor Plus 647 (Goat, Invitrogen A32733)': ('A32733', 'Invitrogen', 'Goat anti-Rabbit IgG (H+L) Plus 647'),
+    'Alexa Fluor Plus 647 (Goat, Invitrogen A32728)': ('A32728', 'Invitrogen', 'Goat anti-Mouse IgG (H+L) Plus 647'),
+    'Alexa Fluor Plus 555 (Goat, Invitrogen A32732)': ('A32732', 'Invitrogen', 'Goat anti-Rabbit IgG (H+L) Plus 555'),
+    'Alexa Fluor 488 (Streptavidin, Invitrogen S32354)': ('S32354', 'Invitrogen', 'Streptavidin AF488 conjugate')
+}
+
+with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+    writer = csv.DictWriter(f, fieldnames=csv_cols)
+    writer.writeheader()
+    for idx, s in enumerate(secondaries_data, 1):
+        meta = cat_map.get(s['conjugate'], ('', 'Invitrogen', ''))
+        row = {
+            'id': f'sab_{idx:03d}',
+            'anti_host': s['anti_host'],
+            'anti_isotype': s['anti_isotype'],
+            'conjugate': s['conjugate'],
+            'conjugate_type': s['conjugate_type'],
+            'excitation_nm': s['excitation_nm'],
+            'emission_nm': s['emission_nm'],
+            'applications': s['applications'],
+            'catalog_no': meta[0],
+            'supplier': meta[1],
+            'notes': meta[2]
+        }
+        writer.writerow(row)
+print(f'Successfully updated default CSV: {csv_path}')
+
+print('All databases updated successfully with lab secondary inventory!')

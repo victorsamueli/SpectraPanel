@@ -4,14 +4,35 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Initialize UI event bindings and channels
     UI.init();
 
-    // 2. Load Default Demo Data on first visit
-    DataLoader.loadDefaultData();
+    // 2. Initialize Database (starts empty by default, or loads saved custom inventory from localStorage)
+    DataLoader.initDatabase();
 
     // 3. Header Action Buttons
     const btnDownloadTemplate = document.getElementById('btn-download-template');
     if (btnDownloadTemplate) {
         btnDownloadTemplate.addEventListener('click', () => {
             DataLoader.generateExcelTemplate();
+        });
+    }
+
+    const btnEmptyDownloadTemplate = document.getElementById('btn-empty-download-template');
+    if (btnEmptyDownloadTemplate) {
+        btnEmptyDownloadTemplate.addEventListener('click', () => {
+            DataLoader.generateExcelTemplate();
+        });
+    }
+
+    const btnClearDb = document.getElementById('btn-clear-db');
+    if (btnClearDb) {
+        btnClearDb.addEventListener('click', () => {
+            DataLoader.clearDatabase(true);
+        });
+    }
+
+    const btnLoadDemo = document.getElementById('btn-load-demo');
+    if (btnLoadDemo) {
+        btnLoadDemo.addEventListener('click', () => {
+            DataLoader.loadDemoData();
         });
     }
 
@@ -289,6 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!window.db[type]) window.db[type] = [];
             window.db[type].push(newEntry);
+            DataLoader.saveToLocalStorage();
             
             document.dispatchEvent(new CustomEvent('dbLoaded'));
             UI.hideModal('modal-manual-entry');
