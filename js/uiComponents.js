@@ -1115,6 +1115,31 @@ ${message}
        Combination Results: STRICTLY Reflect Allowed Channels
        ========================================================= */
 
+    clearResults() {
+        this.state.lastResults = null;
+        this.state.lastConfig = null;
+
+        const container = document.getElementById('results-container');
+        if (container) {
+            container.innerHTML = `
+                <div class="empty-state glass-panel">
+                    <i class="fa-solid fa-flask-vial"></i>
+                    <h3>No Panels Generated Yet</h3>
+                    <p>Select targets in the database and click <strong>Generate Combinations</strong>.</p>
+                </div>`;
+        }
+
+        const actionBar = document.getElementById('results-action-bar');
+        if (actionBar) {
+            actionBar.style.display = 'none';
+        }
+
+        const countBadge = document.getElementById('results-count');
+        if (countBadge) {
+            countBadge.innerText = '0';
+        }
+    },
+
     renderResults(results, config) {
         this.state.lastResults = results;
         this.state.lastConfig = config;

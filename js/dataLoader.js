@@ -395,9 +395,16 @@ const DataLoader = {
             statusEl.innerText = "No Data Loaded";
             statusEl.className = "status-pill status-muted";
         }
-        if (window.UI && window.UI.state) {
-            window.UI.state.selectedReagents = [];
-            window.UI.renderSelectedTargetsBox();
+        if (window.UI) {
+            if (window.UI.state) {
+                window.UI.state.selectedReagents = [];
+            }
+            if (typeof window.UI.renderSelectedTargetsBox === 'function') {
+                window.UI.renderSelectedTargetsBox();
+            }
+            if (typeof window.UI.clearResults === 'function') {
+                window.UI.clearResults();
+            }
         }
         document.dispatchEvent(new CustomEvent('dbLoaded'));
     },
