@@ -257,6 +257,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 5. Database Loaded Event Handler
     document.addEventListener('dbLoaded', () => {
+        const totalItems = (window.db?.primaries?.length || 0) +
+                           (window.db?.secondaries?.length || 0) +
+                           (window.db?.dyes?.length || 0) +
+                           (window.db?.reporters?.length || 0);
+        if (totalItems === 0) {
+            if (UI.state) UI.state.selectedReagents = [];
+            if (typeof UI.clearResults === 'function') UI.clearResults();
+        }
         UI.updateTabCounts();
         UI.populateFilterKeys();
         UI.renderActiveFilters();
@@ -438,14 +446,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const newEntry = { id: `${type.slice(0, 3)}_${Date.now()}` };
 
             const inputs = document.querySelectorAll('#manual-entry-form input');
+            const missingRequired = [];
             let hasContent = false;
             inputs.forEach(inp => {
                 const field = inp.id.replace('entry_', '');
                 if (field !== 'type') {
-                    newEntry[field] = inp.value.trim();
-                    if (inp.value.trim()) hasContent = true;
+                    const val = inp.value.trim();
+                    newEntry[field] = val;
+                    if (val) hasContent = true;
+                    if (inp.hasAttribute('required') && !val) {
+                        const labelText = inp.closest('.form-group')?.querySelector('label')?.textContent?.replace(/[*:]/g, '').trim() || field;
+                        missingRequired.push(labelText);
+                    }
                 }
             });
+
+            if (missingRequired.length > 0) {
+                alert(`Please fill in all essential fields marked with an asterisk (*):\n• ${missingRequired.join('\n• ')}`);
+                return;
+            }
 
             if (!hasContent) {
                 alert("Please fill in the required fields before saving.");

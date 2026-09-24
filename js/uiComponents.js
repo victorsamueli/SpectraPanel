@@ -124,11 +124,11 @@ const UI = {
         if (tab === 'primaries') {
             return ['target', 'clonality', 'clone', 'host', 'isotype', 'make', 'catalog', 'applications', 'conjugated_color', 'fixation_compatible', 'live_cell_compatible', 'comments'];
         } else if (tab === 'secondaries') {
-            return ['anti_host', 'anti_isotype', 'host', 'conjugate', 'channel', 'excitation_nm', 'emission_nm', 'applications', 'make', 'catalogue', 'comments'];
+            return ['anti_host', 'anti_isotype', 'host', 'conjugate', 'excitation_nm', 'emission_nm', 'applications', 'make', 'catalogue', 'comments'];
         } else if (tab === 'dyes') {
             return ['name', 'target_structure', 'color', 'excitation_nm', 'emission_nm', 'live_cell_compatible', 'make', 'catalogue'];
         } else if (tab === 'reporters') {
-            return ['target', 'reporter', 'channel', 'excitation_nm', 'emission_nm', 'recommended_fixation'];
+            return ['target', 'reporter', 'excitation_nm', 'emission_nm', 'recommended_fixation'];
         }
         return [];
     },
@@ -140,7 +140,6 @@ const UI = {
 
         if (tab === 'secondaries' || tab === 'reporters') {
             set.delete('color');
-            set.add('channel');
         }
 
         this.getDefaultColumns(tab).forEach(c => set.add(c));
@@ -187,7 +186,7 @@ const UI = {
 
         container.innerHTML = allCols.map(col => {
             const isChecked = visibleCols.includes(col);
-            const labelText = col === 'channel' ? 'Channel (Dynamic)' : col.replace(/_/g, ' ');
+            const labelText = col.replace(/_/g, ' ');
             return `
                 <label class="column-cb-label">
                     <input type="checkbox" class="col-vis-cb" data-col="${col}" ${isChecked ? 'checked' : ''}>
@@ -710,16 +709,8 @@ ${message}
         const exclude = ['id', 'catalog_no', 'notes', 'dilution_icc', 'dilution_ihc', 'dilution_wb', 'mol_weight_kda', 'excitation_nm', 'emission_nm'];
         let keys = Object.keys(sample).filter(k => !exclude.includes(k)).sort();
 
-        // For secondaries and reporters, remove static color and add dynamic channel
-        if (this.state.activeTab === 'secondaries' || this.state.activeTab === 'reporters') {
-            keys = keys.filter(k => k !== 'color');
-            if (!keys.includes('channel')) {
-                keys.unshift('channel');
-            }
-        }
-
         keySelect.innerHTML = `<option value="">-- Select Column --</option>` +
-            keys.map(k => `<option value="${k}">${k === 'channel' ? 'Channel (Dynamic)' : k.replace(/_/g, ' ')}</option>`).join('');
+            keys.map(k => `<option value="${k}">${k.replace(/_/g, ' ')}</option>`).join('');
 
         this.populateFilterValues('');
     },
@@ -736,22 +727,15 @@ ${message}
         const data = window.db[this.state.activeTab] || [];
         const values = new Set();
 
-        if (selectedKey === 'channel') {
-            data.forEach(row => {
-                const ch = this.getChannelForEmission(row.emission_nm, row.conjugate_type || row.reporter || '');
-                if (ch && ch.name) values.add(ch.name);
-            });
-        } else {
-            data.forEach(row => {
-                const raw = row[selectedKey];
-                if (raw !== null && raw !== undefined && raw !== '') {
-                    String(raw).split(',').forEach(sub => {
-                        const clean = sub.trim();
-                        if (clean) values.add(clean);
-                    });
-                }
-            });
-        }
+        data.forEach(row => {
+            const raw = row[selectedKey];
+            if (raw !== null && raw !== undefined && raw !== '') {
+                String(raw).split(',').forEach(sub => {
+                    const clean = sub.trim();
+                    if (clean) values.add(clean);
+                });
+            }
+        });
 
         const sorted = Array.from(values).sort();
         valSelect.innerHTML = `<option value="">-- All Values (${sorted.length}) --</option>` +
@@ -868,7 +852,7 @@ ${message}
             headHtml += `<th class="table-col-lock" title="Lock target into all combinations">Lock</th>`;
         }
         cols.forEach(c => {
-            const label = c === 'channel' ? 'Channel (Dynamic)' : c.replace(/_/g, ' ');
+            const label = c.replace(/_/g, ' ');
             headHtml += `<th>${label}</th>`;
         });
         headHtml += '</tr>';
@@ -914,18 +898,8 @@ ${message}
             }
 
             cols.forEach(c => {
-                if (c === 'channel') {
-                    const ch = this.getChannelForEmission(row.emission_nm, row.conjugate_type || row.reporter || '');
-                    if (ch) {
-                        const hex = ch.hexColor || '#38bdf8';
-                        bodyHtml += `<td><span class="channel-table-pill" style="--ch-color: ${hex}; border-color: ${hex}55;"><span class="ch-dot" style="background-color: ${hex};"></span>${ch.name}</span></td>`;
-                    } else {
-                        bodyHtml += `<td><span style="color: var(--text-muted); font-size: 0.75rem;">—</span></td>`;
-                    }
-                } else {
-                    let val = row[c] !== undefined ? row[c] : '';
-                    bodyHtml += `<td>${val}</td>`;
-                }
+                let val = row[c] !== undefined ? row[c] : '';
+                bodyHtml += `<td>${val}</td>`;
             });
             bodyHtml += '</tr>';
         });
@@ -1634,28 +1608,28 @@ ${message}
         
         if (type === 'primaries') {
             fields = [
-                { id: 'target', label: 'Target Name (e.g. Ki67)', type: 'text' },
-                { id: 'clonality', label: 'Clonality (Monoclonal, Polyclonal)', type: 'text' },
+                { id: 'target', label: 'Target Name (e.g. Ki67)', type: 'text', required: true },
+                { id: 'clonality', label: 'Clonality (Monoclonal, Polyclonal)', type: 'text', required: true },
                 { id: 'clone', label: 'Clone (e.g. DM1A, 5.8A)', type: 'text' },
-                { id: 'host', label: 'Host Species (Rabbit, Mouse)', type: 'text' },
-                { id: 'isotype', label: 'Isotype (IgG, IgG1, IgG2a)', type: 'text' },
+                { id: 'host', label: 'Host Species (Rabbit, Mouse)', type: 'text', required: true },
+                { id: 'isotype', label: 'Isotype (IgG, IgG1, IgG2a)', type: 'text', required: true },
                 { id: 'make', label: 'Make / Supplier (e.g. Invitrogen)', type: 'text' },
                 { id: 'catalog', label: 'Catalog #', type: 'text' },
                 { id: 'applications', label: 'Validated Apps (ICC, IHC, WB)', type: 'text' },
                 { id: 'conjugated_color', label: 'Conjugated Color (if direct, else blank)', type: 'text' },
-                { id: 'fixation_compatible', label: 'Fixation Compatible (PFA, Methanol)', type: 'text' },
+                { id: 'fixation_compatible', label: 'Fixation Compatible (PFA, Methanol)', type: 'text', required: true },
                 { id: 'live_cell_compatible', label: 'Live-Cell Compatible (Yes/No)', type: 'text' },
                 { id: 'comments', label: 'Comments / Notes', type: 'text' }
             ];
         } else if (type === 'secondaries') {
             fields = [
-                { id: 'anti_host', label: 'Anti-Host Species (Rabbit, Mouse)', type: 'text' },
+                { id: 'anti_host', label: 'Anti-Host Species (Rabbit, Mouse)', type: 'text', required: true },
                 { id: 'anti_isotype', label: 'Anti-Isotype (IgG (H+L))', type: 'text' },
                 { id: 'host', label: 'Host Species (Goat, Donkey)', type: 'text' },
-                { id: 'conjugate', label: 'Conjugate (Alexa Fluor 488, HRP)', type: 'text' },
+                { id: 'conjugate', label: 'Conjugate (Alexa Fluor 488, HRP)', type: 'text', required: true },
                 { id: 'conjugate_type', label: 'Conjugate Type (Fluorophore/HRP)', type: 'text' },
                 { id: 'excitation_nm', label: 'Excitation Peak (nm)', type: 'number' },
-                { id: 'emission_nm', label: 'Emission Peak (nm)', type: 'number' },
+                { id: 'emission_nm', label: 'Emission Peak (nm)', type: 'number', required: true },
                 { id: 'applications', label: 'Applications (ICC, IHC, WB)', type: 'text' },
                 { id: 'make', label: 'Make / Supplier (e.g. Invitrogen)', type: 'text' },
                 { id: 'catalogue', label: 'Catalogue #', type: 'text' },
@@ -1663,21 +1637,21 @@ ${message}
             ];
         } else if (type === 'dyes') {
             fields = [
-                { id: 'name', label: 'Dye Name (DAPI, Phalloidin)', type: 'text' },
+                { id: 'name', label: 'Dye Name (DAPI, Phalloidin)', type: 'text', required: true },
                 { id: 'target_structure', label: 'Target Structure (DNA, F-Actin)', type: 'text' },
                 { id: 'color', label: 'Color (Blue, Green, Red)', type: 'text' },
                 { id: 'excitation_nm', label: 'Excitation (nm)', type: 'number' },
-                { id: 'emission_nm', label: 'Emission (nm)', type: 'number' },
-                { id: 'live_cell_compatible', label: 'Live-Cell Compatible (Yes/No)', type: 'text' },
+                { id: 'emission_nm', label: 'Emission (nm)', type: 'number', required: true },
+                { id: 'live_cell_compatible', label: 'Live-Cell Compatible (Yes/No)', type: 'text', required: true },
                 { id: 'make', label: 'Make / Supplier (e.g. Invitrogen)', type: 'text' },
                 { id: 'catalogue', label: 'Catalogue #', type: 'text' }
             ];
         } else if (type === 'reporters') {
             fields = [
-                { id: 'target', label: 'Target Protein Name (Tubulin, Actin)', type: 'text' },
-                { id: 'reporter', label: 'Reporter Fluorophore Tag (EGFP, mCherry)', type: 'text' },
+                { id: 'target', label: 'Target Protein Name (Tubulin, Actin)', type: 'text', required: true },
+                { id: 'reporter', label: 'Reporter Fluorophore Tag / FP (EGFP, mCherry)', type: 'text', required: true },
                 { id: 'excitation_nm', label: 'Excitation (nm)', type: 'number' },
-                { id: 'emission_nm', label: 'Emission (nm)', type: 'number' },
+                { id: 'emission_nm', label: 'Emission (nm)', type: 'number', required: true },
                 { id: 'recommended_fixation', label: 'Compatible Fixation (PFA)', type: 'text' },
                 { id: 'live_cell_compatible', label: 'Live-Cell Compatible (Yes/No)', type: 'text' }
             ];
@@ -1685,10 +1659,11 @@ ${message}
 
         let formHtml = `<input type="hidden" id="entry_type" value="${type}">`;
         fields.forEach(f => {
+            const reqStar = f.required ? `<span class="required-star" title="Essential field">*</span>` : '';
             formHtml += `
                 <div class="form-group">
-                    <label>${f.label}:</label>
-                    <input type="${f.type}" id="entry_${f.id}" class="form-input">
+                    <label>${f.label}${reqStar}:</label>
+                    <input type="${f.type}" id="entry_${f.id}" class="form-input" ${f.required ? 'required' : ''}>
                 </div>
             `;
         });
@@ -1696,3 +1671,8 @@ ${message}
         form.innerHTML = formHtml;
     }
 };
+
+// Global export for browser scripts & DataLoader
+if (typeof window !== 'undefined') {
+    window.UI = UI;
+}

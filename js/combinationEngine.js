@@ -183,7 +183,7 @@ const CombinationEngine = {
 
             // 5. Filter Primaries validated for this application & mode
             const allPrimaries = (window.db && Array.isArray(window.db.primaries)) ? window.db.primaries : [];
-            let validPrimaries = allPrimaries.filter(p => this.hasApplication(p.applications, application));
+            let validPrimaries = allPrimaries.filter(p => !p.applications || this.hasApplication(p.applications, application));
             if (config.mode === 'Live') {
                 validPrimaries = validPrimaries.filter(p => p.live_cell_compatible === 'Yes');
             }
@@ -456,7 +456,7 @@ const CombinationEngine = {
 
     findCompatibleSecondaries(primary, application, usedChannels, allPrimaries, allowedChannels, configuredChannels) {
         const secDb = (window.db && Array.isArray(window.db.secondaries)) ? window.db.secondaries : [];
-        let validSecs = secDb.filter(s => this.hasApplication(s.applications, application));
+        let validSecs = secDb.filter(s => !s.applications || this.hasApplication(s.applications, application));
         const priHost = (primary.host || '').toLowerCase();
         validSecs = validSecs.filter(s => s.anti_host && s.anti_host.toLowerCase() === priHost);
         

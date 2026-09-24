@@ -598,6 +598,12 @@ html, body {
 
 .filter-tag i:hover { color: var(--accent-red); }
 
+.required-star {
+    color: var(--accent-red);
+    font-weight: 700;
+    margin-left: 3px;
+}
+
 /* Left-Side Data Table */
 .table-container {
     max-height: calc(100vh - 350px);
