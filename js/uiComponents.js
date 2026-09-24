@@ -1200,15 +1200,74 @@ ${message}
             `;
         }
 
-        let html = '';
+        // Group combinations by identical target set
+        const targetGroups = new Map();
         results.combinations.forEach((combo, index) => {
-            html += this.renderCombinationCard(combo, index, config);
+            const sig = this.getComboTargetSignature(combo);
+            if (!targetGroups.has(sig)) {
+                targetGroups.set(sig, []);
+            }
+            targetGroups.get(sig).push({ combo, index });
         });
 
-        container.innerHTML = exclusionNoticeHtml + html;
+        let groupsHtml = '';
+        targetGroups.forEach((items, targetSig) => {
+            const totalVariants = items.length;
+            const badgeText = totalVariants > 1 
+                ? `${totalVariants} Channel Variations` 
+                : `1 Channel Variation`;
+
+            let cardsHtml = '';
+            items.forEach((item, variantIdx) => {
+                cardsHtml += this.renderCombinationCard(
+                    item.combo, 
+                    item.index, 
+                    config, 
+                    variantIdx + 1, 
+                    totalVariants
+                );
+            });
+
+            groupsHtml += `
+                <div class="target-group-section">
+                    <div class="target-group-header">
+                        <div class="target-group-title">
+                            <i class="fa-solid fa-bullseye"></i> Target Set: <strong>${targetSig}</strong>
+                        </div>
+                        <span class="target-group-badge">${badgeText}</span>
+                    </div>
+                    <div class="target-group-cards">
+                        ${cardsHtml}
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = exclusionNoticeHtml + groupsHtml;
     },
 
-    renderCombinationCard(combo, index, config) {
+    getComboTargetSignature(combo) {
+        const targets = [];
+        if (combo.primaries) {
+            combo.primaries.forEach(p => {
+                if (p.primary && p.primary.target) targets.push(p.primary.target);
+            });
+        }
+        if (combo.assignedDyes) {
+            combo.assignedDyes.forEach(d => {
+                if (d.dye && d.dye.name) targets.push(d.dye.name);
+            });
+        }
+        if (combo.reporters) {
+            combo.reporters.forEach(r => {
+                targets.push(r.target || r.reporter || r.reporter_name || 'Reporter');
+            });
+        }
+        const unique = [...new Set(targets)].sort((a, b) => a.localeCompare(b));
+        return unique.length > 0 ? unique.join(' + ') : 'Standard Selection';
+    },
+
+    renderCombinationCard(combo, index, config, variantIndex = null, totalVariants = 1) {
         // STRICT: Only include the channels currently checked in Permitted Detection Channels!
         const channels = config.allowedChannels && config.allowedChannels.length > 0 
             ? config.allowedChannels 
@@ -1220,21 +1279,23 @@ ${message}
         combo.primaries.forEach(p => {
             const ch = p.channel;
             if (channelMap[ch] !== undefined) {
-                const priStr = `<strong>${p.primary.host} ${p.primary.isotype || ''}</strong><br>anti-${p.primary.target}`;
+                const hostIsotype = [p.primary.host, p.primary.isotype].filter(Boolean).join(' ') || 'Primary Ab';
+                const priStr = `<strong>${p.primary.target}</strong><span class="row-sub">${hostIsotype}</span>`;
                 const secStr = p.is_direct 
-                    ? `<em>(Direct ${p.primary.conjugated_color})</em>` 
-                    : `${p.secondary.anti_host} ${p.secondary.anti_isotype}<br><strong>${p.secondary.conjugate}</strong>`;
-                channelMap[ch].push({ target: p.primary.target, pri: priStr, sec: secStr });
+                    ? `<strong>Direct (${p.primary.conjugated_color})</strong><span class="row-sub">Conjugated Primary</span>` 
+                    : `<strong>${p.secondary.conjugate}</strong><span class="row-sub">${p.secondary.anti_host} ${p.secondary.anti_isotype || ''}</span>`;
+                channelMap[ch].push({ pri: priStr, sec: secStr });
             }
         });
 
         combo.assignedDyes.forEach(d => {
             const ch = d.channel;
             if (channelMap[ch] !== undefined) {
+                const dyeName = d.dye.name || 'Dye';
+                const sub = d.dye.target_structure ? `Counterstain (${d.dye.target_structure})` : 'Counterstain';
                 channelMap[ch].push({
-                    target: d.dye.name,
-                    pri: `<em>(Direct Counterstain)</em>`,
-                    sec: `—`
+                    pri: `<strong>${dyeName}</strong><span class="row-sub">${sub}</span>`,
+                    sec: `<span style="color: var(--text-muted);">—</span>`
                 });
             }
         });
@@ -1243,31 +1304,27 @@ ${message}
             const ch = CombinationEngine.matchChannelForReagent(r, config.configuredChannels, channels);
             if (ch && channelMap[ch] !== undefined) {
                 const repTag = r.reporter || r.reporter_name || '';
-                const targetText = r.target 
-                    ? `<strong>${r.target}</strong><br><span style="font-size:0.7rem; color:var(--text-secondary);">(${repTag})</span>` 
-                    : `<strong>${repTag}</strong>`;
+                const repTitle = r.target ? r.target : (repTag || 'Reporter');
+                const repSub = r.target && repTag ? `${repTag} Reporter` : 'Reporter Line';
                 channelMap[ch].push({
-                    target: targetText,
-                    pri: `<em>(Reporter Line)</em>`,
-                    sec: `—`
+                    pri: `<strong>${repTitle}</strong><span class="row-sub">${repSub}</span>`,
+                    sec: `<span style="color: var(--text-muted);">—</span>`
                 });
             }
         });
 
-        let targetRow = '';
+        const colWidth = (100 / channels.length).toFixed(2);
         let priRow = '';
         let secRow = '';
 
         channels.forEach(ch => {
             const items = channelMap[ch];
             if (items && items.length > 0) {
-                targetRow += `<td>${items[0].target}</td>`;
-                priRow += `<td>${items[0].pri}</td>`;
-                secRow += `<td>${items[0].sec}</td>`;
+                priRow += `<td style="width: ${colWidth}%;">${items[0].pri}</td>`;
+                secRow += `<td style="width: ${colWidth}%;">${items[0].sec}</td>`;
             } else {
-                targetRow += `<td style="color: var(--text-muted);">—</td>`;
-                priRow += `<td style="color: var(--text-muted);">—</td>`;
-                secRow += `<td style="color: var(--text-muted);">—</td>`;
+                priRow += `<td style="width: ${colWidth}%; color: var(--text-muted);">—</td>`;
+                secRow += `<td style="width: ${colWidth}%; color: var(--text-muted);">—</td>`;
             }
         });
 
@@ -1280,11 +1337,16 @@ ${message}
             ? `<div class="fixation-warn-banner"><i class="fa-solid fa-circle-exclamation"></i> ${combo.fixation.warnings.join(' ')}</div>`
             : '';
 
+        const variantBadgeHtml = (totalVariants > 1 && variantIndex !== null)
+            ? `<span class="variant-badge"><i class="fa-solid fa-arrows-rotate" style="font-size: 0.65rem; margin-right: 3px;"></i>Variation ${variantIndex} of ${totalVariants}</span>`
+            : '';
+
         return `
             <div class="combo-card">
                 <div class="combo-card-header">
                     <div class="combo-title-wrap">
                         <h3>Combination #${index + 1}</h3>
+                        ${variantBadgeHtml}
                         <span class="score-badge">Score: ${combo.score}</span>
                     </div>
                     <div class="combo-header-badges">
@@ -1300,14 +1362,13 @@ ${message}
                                     // Find channel custom hex color
                                     const chObj = (this.state.configuredChannels || []).find(c => c.name === ch);
                                     const hex = (chObj && chObj.hexColor) ? chObj.hexColor : (ch === 'HRP' ? '#fbbf24' : '#38bdf8');
-                                    return `<th style="border-top: 3px solid ${hex};"><span class="ch-dot" style="background-color: ${hex};"></span>${ch}</th>`;
+                                    return `<th style="width: ${colWidth}%; border-top: 3px solid ${hex};"><span class="ch-dot" style="background-color: ${hex};"></span>${ch}</th>`;
                                 }).join('')}
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>${targetRow}</tr>
-                            <tr style="font-size: 0.725rem;">${priRow}</tr>
-                            <tr style="font-size: 0.725rem;">${secRow}</tr>
+                            <tr>${priRow}</tr>
+                            <tr>${secRow}</tr>
                         </tbody>
                     </table>
                 </div>
@@ -1341,6 +1402,7 @@ ${message}
         const detailedRows = [];
         combinations.forEach((combo, idx) => {
             const comboNum = `Combo #${idx + 1}`;
+            const targetSet = this.getComboTargetSignature(combo);
             const score = combo.score;
             const fixStatus = combo.fixation.valid ? 'Compatible' : 'Conflict';
             const fixWarnings = combo.fixation.warnings.join('; ') || 'None';
@@ -1349,6 +1411,7 @@ ${message}
             combo.primaries.forEach(p => {
                 detailedRows.push({
                     "Combination": comboNum,
+                    "Target Set": targetSet,
                     "Score": score,
                     "Fixation Status": fixStatus,
                     "Channel": p.channel,
@@ -1368,6 +1431,7 @@ ${message}
             combo.assignedDyes.forEach(d => {
                 detailedRows.push({
                     "Combination": comboNum,
+                    "Target Set": targetSet,
                     "Score": score,
                     "Fixation Status": fixStatus,
                     "Channel": d.channel,
@@ -1387,6 +1451,7 @@ ${message}
                 const repTag = r.reporter || r.reporter_name || '';
                 detailedRows.push({
                     "Combination": comboNum,
+                    "Target Set": targetSet,
                     "Score": score,
                     "Fixation Status": fixStatus,
                     "Channel": ch,
@@ -1405,6 +1470,7 @@ ${message}
         const matrixRows = combinations.map((combo, idx) => {
             const row = {
                 "Combination": `Combo #${idx + 1}`,
+                "Target Set": this.getComboTargetSignature(combo),
                 "Score": combo.score,
                 "Fixation": combo.fixation.valid ? 'OK' : 'Conflict'
             };
@@ -1468,6 +1534,7 @@ ${message}
         const detailedRows = [];
         combinations.forEach((combo, idx) => {
             const comboNum = `Combo #${idx + 1}`;
+            const targetSet = this.getComboTargetSignature(combo);
             const score = combo.score;
             const fixStatus = combo.fixation.valid ? 'Compatible' : 'Conflict';
             const fixWarnings = combo.fixation.warnings.join('; ') || 'None';
@@ -1475,6 +1542,7 @@ ${message}
             combo.primaries.forEach(p => {
                 detailedRows.push({
                     "Combination": comboNum,
+                    "Target Set": targetSet,
                     "Score": score,
                     "Fixation Status": fixStatus,
                     "Channel": p.channel,
@@ -1493,6 +1561,7 @@ ${message}
             combo.assignedDyes.forEach(d => {
                 detailedRows.push({
                     "Combination": comboNum,
+                    "Target Set": targetSet,
                     "Score": score,
                     "Fixation Status": fixStatus,
                     "Channel": d.channel,
@@ -1511,6 +1580,7 @@ ${message}
                 const repTag = r.reporter || r.reporter_name || '';
                 detailedRows.push({
                     "Combination": comboNum,
+                    "Target Set": targetSet,
                     "Score": score,
                     "Fixation Status": fixStatus,
                     "Channel": ch,

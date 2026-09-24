@@ -728,9 +728,10 @@ html, body {
 .fixation-icon.status-ok { color: var(--accent-green); }
 .fixation-icon.status-warn { color: var(--accent-red); cursor: help; }
 
-/* Condensed 4/5/6 Channel Table */
+/* Condensed 4/5/6 Channel Table - STRICT Equal Column Widths */
 .combo-channels-table {
     width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
     font-size: 0.75rem;
     background: rgba(0, 0, 0, 0.25);
@@ -739,16 +740,30 @@ html, body {
 }
 
 .combo-channels-table th, .combo-channels-table td {
-    padding: 0.4rem 0.5rem;
+    padding: 0.45rem 0.35rem;
     border: 1px solid var(--panel-border);
     text-align: center;
     vertical-align: middle;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .combo-channels-table thead th {
     font-weight: 700;
     font-size: 0.725rem;
     background: rgba(255, 255, 255, 0.02);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.combo-channels-table .row-sub {
+    display: block;
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+    margin-top: 2px;
+    line-height: 1.25;
 }
 
 .combo-channels-table th.ch-blue { border-top: 3px solid var(--accent-blue); }
@@ -758,6 +773,60 @@ html, body {
 .combo-channels-table th.ch-orange { border-top: 3px solid var(--accent-orange); }
 .combo-channels-table th.ch-nearir { border-top: 3px solid var(--accent-nearir); }
 .combo-channels-table th.ch-hrp { border-top: 3px solid var(--accent-yellow); }
+
+/* Target Set Grouping Section & Header */
+.target-group-section {
+    margin-bottom: 1.25rem;
+}
+
+.target-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0.85rem;
+    margin-bottom: 0.6rem;
+    background: rgba(30, 41, 59, 0.65);
+    border: 1px solid var(--panel-border);
+    border-left: 3px solid var(--accent-blue);
+    border-radius: var(--radius-sm);
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.target-group-title {
+    font-size: 0.825rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.target-group-title i {
+    color: var(--accent-blue);
+}
+
+.target-group-badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 9999px;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: var(--accent-blue);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.variant-badge {
+    font-size: 0.68rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--text-secondary);
+    margin-left: 0.5rem;
+    font-weight: 500;
+}
 
 .fixation-warn-banner {
     font-size: 0.725rem;
